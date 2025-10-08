@@ -270,6 +270,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { uploadModelBlockchain , uploadToIPFS } from '@/lib/blockchain'
+import { parseEther } from 'ethers'
 
 // Estados reactivos
 const showUploadModal = ref(false)
@@ -403,22 +405,29 @@ const uploadModel = async () => {
       return
     }
 
-    // Simular subida del archivo (en producción sería una llamada API)
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    const ipfsHashModel = await uploadToIPFS(selectedFile.value);
+    const ipfsHashModelMetaData = {};
 
-    // Crear un nuevo modelo (simulado)
+    // convertir precio AVAX (por ejemplo "0.001") a wei (BigInt)
+    const priceWei = parseEther(String(modelForm.value.price)) // devuelve bigint
+
     const newModel = {
-      id: `model-${Date.now()}`,
       name: modelForm.value.name,
-      description: modelForm.value.description,
-      price: modelForm.value.price,
-      category: modelForm.value.category,
-      fileName: selectedFile.value.name,
-      fileSize: selectedFile.value.size,
-      uploadDate: new Date().toISOString(),
-      status: 'uploaded'
+      description: modelForm.value.description || '',
+      model: ipfsHashModel,
+      priceWei: priceWei.toString(),         // valor que se enviará al contrato
+      modelMetadata: ipfsHashModelMetaData,
     }
 
+    // pasar price en wei (string o bigint) al contrato
+    await uploadModelBlockchain(
+      newModel.name,
+      newModel.model,
+      newModel.priceWei,                // ahora en wei, no en AVAX decimal
+      JSON.stringify(newModel.modelMetadata)
+    );
+
+    
     // Agregar a la lista de modelos subidos
     uploadedModels.value.push(newModel)
     localStorage.setItem('uploadedModels', JSON.stringify(uploadedModels.value))
