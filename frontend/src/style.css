@@ -324,3 +324,101 @@ body {
 .w-full {
   width: 100%;
 }
+
+/* Animación para la barra de carga */
+.loading-bar {
+  width: 0%;
+  animation: loading 2s ease-in-out infinite;
+}
+
+@keyframes loading {
+  0% { width: 0%; }
+  50% { width: 70%; }
+  100% { width: 100%; }
+}
+
+/* Estilos para botones deshabilitados */
+.cursor-not-allowed {
+  cursor: not-allowed;
+}
+
+/* Espaciado */
+.space-y-1 > * + * {
+  margin-top: 0.25rem;
+}
+
+/* Grid responsivo */
+.md\:grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lg\:grid-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid {
+  display: grid;
+}
+
+.gap-6 {
+  gap: 1.5rem;
+}
+
+/* Utilidades adicionales */
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mb-6 {
+  margin-bottom: 1.5rem;
+}
+
+.mb-8 {
+  margin-bottom: 2rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.mt-8 {
+  margin-top: 2rem;
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
+.text-3xl {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+
+.tracking-tight {
+  letter-spacing: -0.025em;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.border {
+  border-width: 1px;
+  border-color: hsl(var(--border));
+}
+
+.rounded-lg {
+  border-radius: 0.5rem;
+}
+
+.h-2 {
+  height: 0.5rem;
+}

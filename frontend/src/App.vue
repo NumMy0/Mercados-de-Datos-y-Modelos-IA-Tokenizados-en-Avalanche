@@ -41,6 +41,8 @@ const toggleSidebar = () => {
       </main>
     </div>
   </div>
+
+  <div class="fixed inset-0 z-50 bg-black/30" v-if="sidebarOpen" @click="toggleSidebar"></div>
 </template>
 
 <style scoped>

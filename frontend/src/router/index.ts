@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const Dashboard = () => import('@/views/Dashboard.vue')
 const Models = () => import('@/views/Models.vue')
 const Settings = () => import('@/views/Settings.vue')
+const ModelPlayground = () => import('@/views/ModelPlayground.vue')
 
 const routes = [
   {
@@ -47,6 +48,24 @@ const routes = [
         name: 'models-quantum',
         component: Models,
         meta: { title: 'Quantum' }
+      },
+      {
+        path: 'genesis/playground',
+        name: 'genesis-playground',
+        component: ModelPlayground,
+        meta: { title: 'Genesis Playground' }
+      },
+      {
+        path: 'explorer/playground',
+        name: 'explorer-playground',
+        component: ModelPlayground,
+        meta: { title: 'Explorer Playground' }
+      },
+      {
+        path: 'quantum/playground',
+        name: 'quantum-playground',
+        component: ModelPlayground,
+        meta: { title: 'Quantum Playground' }
       }
     ]
   },
