@@ -28,24 +28,9 @@ onMounted(async () => {
   loadingModels.value = true
   try {
     const ids = await getAllModelIds()
-<<<<<<< HEAD
-    if (ids && ids.length) {
-      const fetched = await Promise.all(ids.map((id: any) => getModelById(id)))
-      // Transformar los datos de la blockchain al formato esperado
-      models.value = fetched.map(model => ({
-        id: model.id,
-        name: model.name || model.modelName || `Model #${model.id}`,
-        description: model.description || model.modelDescription || 'Sin descripción',
-        price: model.price ? `${model.price} AVAX` : 'No disponible',
-        category: model.category || model.modelCategory || 'General',
-        owner: model.owner || '0x0000000000000000000000000000000000000000',
-        forSale: model.forSale || false
-      }))
-=======
     if (!ids || ids.length === 0) {
       models.value = []
       return
->>>>>>> 659fdbc88c2aab9295d3c1ac2b56061a1eb7c2b5
     }
 
     // Cargar todos los modelos on-chain en paralelo
@@ -74,13 +59,11 @@ onMounted(async () => {
 
         // Preferencias: metadata.name > onchain.name
         const displayName = metadata?.name ?? m.name ?? `Model #${m.id}`
-        const description = metadata?.description ?? 'Sin descripción'
+        const description = metadata?.description ?? 'Sin descripciÃ³n'
         const category = metadata?.category ?? 'General'
         // Precio legible (ya convertido en getModelById a string en AVAX si existe)
         const priceReadable = (m.forSale ? (m.salePrice ?? m.salePriceWei) : (m.basePrice ?? m.basePriceWei)) ?? null
         const priceText = priceReadable ? `${priceReadable} AVAX` : 'No disponible'
-        // Imagen (si metadata.image es ipfs:// o CID)
-        const image = metadata?.image ?? null
 
         return {
           id: m.id,
@@ -92,7 +75,6 @@ onMounted(async () => {
           category,
           ipfsHash: m.ipfsHash,
           tokenURI: m.tokenURI,
-          image
         }
       })
     )
@@ -107,6 +89,7 @@ onMounted(async () => {
 
   console.log('Modelos transformados:', models.value)
 })
+
 
 
 const handleUploadModel = () => {
@@ -178,6 +161,11 @@ const handleSetPlanActive = (planId: number, active: boolean) => {
 const handleBuyLicense = (planId: number) => {
   console.log('buyLicense:', { modelId: selectedModelId.value, planId })
   alert('Licencia comprada exitosamente!')
+  // Cerrar modal de compra si viene de allí
+  if (isBuyModalOpen.value) {
+    isBuyModalOpen.value = false
+    selectedModelId.value = null
+  }
 }
 
 const handleBuyModel = () => {
@@ -285,6 +273,7 @@ const handleTransferModel = (toAddress: string) => {
       :model="selectedModel"
       @close="handleCloseBuyModal"
       @buy-model="handleBuyModel"
+      @buy-license="handleBuyLicense"
     />
   </div>
 </template>
