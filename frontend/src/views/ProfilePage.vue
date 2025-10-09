@@ -6,7 +6,7 @@ import Header from '../components/ui/header.vue'
 import ModelCard from '../components/ui/ModelCard.vue'
 import ModelDetailsModal from '../components/ModelDetailsModal.vue'
 import WithdrawModal from '../components/WithdrawModal.vue'
-import { getAllModelIds, getModelById } from '../composables/blockchain'
+import { getAllModelIds, getModelById, getPendingWithdrawal } from '../composables/blockchain'
 const { isConnected, account } = useWallet()
 
 const router = useRouter()
@@ -20,6 +20,7 @@ const userLicenses = ref<any[]>([])
 const loadingModels = ref(false)
 const loadingLicenses = ref(false)
 const walletBalance = ref('0.00')
+const pendingWithdrawal = ref<{ wei: string; readable: string | null }>({ wei: '0', readable: null })
 const showWithdrawModal = ref(false)
 
 // Computed
@@ -38,7 +39,22 @@ onMounted(async () => {
   await loadUserModels()
   await loadUserLicenses()
   await loadWalletBalance()
+  await loadPendingWithdrawal()
 })
+
+const loadPendingWithdrawal = async () => {
+  try {
+    if (!account.value) {
+      pendingWithdrawal.value = { wei: '0', readable: '0' }
+      return
+    }
+    const res = await getPendingWithdrawal(account.value)
+    pendingWithdrawal.value = res || { wei: '0', readable: '0' }
+  } catch (err) {
+    console.error('Error obteniendo pending withdrawal:', err)
+    pendingWithdrawal.value = { wei: '0', readable: '0' }
+  }
+}
 
 const loadUserModels = async () => {
   loadingModels.value = true
@@ -189,7 +205,9 @@ const getUsageColor = (percentage: number) => {
   return 'bg-green-500'
 }
 
-const openWithdrawModal = () => {
+const openWithdrawModal = async () => {
+  // refrescar monto pendiente antes de mostrar
+  await loadPendingWithdrawal()
   showWithdrawModal.value = true
 }
 
@@ -200,6 +218,8 @@ const closeWithdrawModal = () => {
 const handleWithdrawSuccess = async () => {
   // Actualizar el balance después del retiro exitoso
   await loadWalletBalance()
+  // y refrescar el monto pendiente en el contrato
+  await loadPendingWithdrawal()
 }
 </script>
 
@@ -436,7 +456,7 @@ const handleWithdrawSuccess = async () => {
     <!-- Withdraw Modal -->
     <WithdrawModal
       :is-open="showWithdrawModal"
-      :available-balance="walletBalance"
+      :available-balance="pendingWithdrawal.readable ?? walletBalance"
       @close="closeWithdrawModal"
       @success="handleWithdrawSuccess"
     />
