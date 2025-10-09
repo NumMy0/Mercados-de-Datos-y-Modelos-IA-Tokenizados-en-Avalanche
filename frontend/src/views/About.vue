@@ -395,9 +395,7 @@ const scrollToSection = (sectionId: string) => {
     <footer class="bg-gray-900 text-gray-400 py-8">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <p class="mb-2 flex items-center justify-center gap-2">
-          © 2025 AI Marketplace. Construido con 
-          <Heart class="w-4 h-4 text-red-500 fill-current" />
-          en Avalanche
+          © 2025 AI Marketplace. Diseñado con Avalanche
         </p>
         <p class="text-sm">
           Descentralizando el futuro de la Inteligencia Artificial
