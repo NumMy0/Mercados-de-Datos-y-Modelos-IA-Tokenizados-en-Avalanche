@@ -196,8 +196,9 @@ export async function getAllModelIds() {
             throw new Error('No hay proveedor RPC disponible (define VITE_RPC_URL o conecta MetaMask)')
         }
     }
-
+    await console.log("Using contract address:", CONTRACT_ADDRESS);
     const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, provider)
+    
     const raw: any = await (contract as any).getAllModelIds()
     // raw expected to be array of BigNumbers
     return (raw || []).map((v: any) => {
