@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { uploadModelBlockchain , uploadToIPFS } from '../composables/blockchain';
 
 const props = defineProps<{
   isOpen: boolean
@@ -19,7 +20,7 @@ const formData = ref({
   features: ''
 })
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   // Validación básica
   if (!formData.value.title || !formData.value.description || !formData.value.price) {
     alert('Por favor completa todos los campos obligatorios')
@@ -27,6 +28,35 @@ const handleSubmit = () => {
   }
 
   emit('submit', formData.value)
+
+  const metadata = {
+    name: formData.value.title,
+    description: formData.value.description,
+    category: formData.value.category,
+    features: formData.value.features
+  }
+
+  const modelIPFSHash = await uploadToIPFS(metadata)
+  if (!modelIPFSHash) {
+    alert('Error al subir los metadatos a IPFS')
+    return
+  }
+
+  const metadataIPFSHash = await uploadToIPFS(metadata);
+
+  if (!metadataIPFSHash) {
+    alert('Error al subir los metadatos a IPFS')
+    return
+  }
+
+  // Subir modelo a la blockchain
+  await uploadModelBlockchain(
+    formData.value.title,
+    modelIPFSHash,
+    formData.value.price,
+    metadataIPFSHash,
+  )
+
   resetForm()
 }
 
