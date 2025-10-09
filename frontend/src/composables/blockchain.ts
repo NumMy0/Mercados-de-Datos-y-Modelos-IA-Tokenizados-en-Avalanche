@@ -71,6 +71,7 @@ export async function uploadToIPFS(file: any) {
     // Si la respuesta fue JSON válido, parsearlo
     let data: any;
     try { data = JSON.parse(text); } catch (e) { data = { raw: text }; }
+    console.log("Archivo subido a IPFS:", data);
     return data.IpfsHash; // el CID del archivo
 }
 
@@ -87,6 +88,7 @@ export async function uploadToIPFS(file: any) {
  */
 export async function uploadModelBlockchain(name: string, ipfsHash: string, basePrice: string | number | bigint, tokenURI: string) {
     if (!window.ethereum) throw new Error("MetaMask no detectado");
+    console.log('subiendo a block');
 
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
