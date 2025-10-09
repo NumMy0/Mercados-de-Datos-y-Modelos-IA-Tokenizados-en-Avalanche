@@ -7,6 +7,7 @@ import ModelCard from '../components/ui/ModelCard.vue'
 import UploadModelModal from '../components/UploadModelModal.vue'
 import ModelDetailsModal from '../components/ModelDetailsModal.vue'
 import { getAllModelIds, getModelById } from '../composables/blockchain'
+import { fetchMetadata } from '../composables/ipfs'
 
 const { isConnected, connectWallet, account } = useWallet()
 const router = useRouter()
@@ -21,17 +22,62 @@ onMounted(async () => {
   loadingModels.value = true
   try {
     const ids = await getAllModelIds()
-    if (ids && ids.length) {
-      const fetched = await Promise.all(ids.map((id: any) => getModelById(id)))
-      // Transformar los datos de la blockchain al formato esperado
-      models.value = fetched.map(model => ({
-        id: model.id,
-        name: model.name || model.modelName || `Model #${model.id}`,
-        description: model.description || model.modelDescription || 'Sin descripción',
-        price: model.price ? `${model.price} AVAX` : 'No disponible',
-        category: model.category || model.modelCategory || 'General'
-      }))
+    if (!ids || ids.length === 0) {
+      models.value = []
+      return
     }
+
+    // Cargar todos los modelos on-chain en paralelo
+    const rawModels = await Promise.all(
+      ids.map(async (id: any) => {
+        try {
+          return await getModelById(id)
+        } catch (err) {
+          console.warn('No se pudo leer model on-chain', id, err)
+          return null
+        }
+      })
+    )
+
+    // Para cada modelo intentar obtener metadata (IPFS). Podemos hacerlo en paralelo.
+    const enriched = await Promise.all(
+      rawModels.map(async (m: any) => {
+        if (!m) return null
+        let metadata: any = null
+        try {
+          metadata = await fetchMetadata(m.id)
+        } catch (err) {
+          // Si la metadata falla, no abortamos todo; dejamos valores por defecto
+          console.debug('No se pudo obtener metadata para', m.id, err)
+        }
+
+        // Preferencias: metadata.name > onchain.name
+        const displayName = metadata?.name ?? m.name ?? `Model #${m.id}`
+        const description = metadata?.description ?? 'Sin descripción'
+        const category = metadata?.category ?? 'General'
+        // Precio legible (ya convertido en getModelById a string en AVAX si existe)
+        const priceReadable = (m.forSale ? (m.salePrice ?? m.salePriceWei) : (m.basePrice ?? m.basePriceWei)) ?? null
+        const priceText = priceReadable ? `${priceReadable} AVAX` : 'No disponible'
+        // Imagen (si metadata.image es ipfs:// o CID)
+        const image = metadata?.image ?? null
+
+        return {
+          id: m.id,
+          author: m.author,
+          name: displayName,
+          description,
+          price: priceText,
+          priceRaw: priceReadable,
+          category,
+          ipfsHash: m.ipfsHash,
+          tokenURI: m.tokenURI,
+          image
+        }
+      })
+    )
+
+    // Filtrar nulos y asignar
+    models.value = enriched.filter(Boolean)
   } catch (err) {
     console.error('Error cargando modelos desde la blockchain:', err)
   } finally {

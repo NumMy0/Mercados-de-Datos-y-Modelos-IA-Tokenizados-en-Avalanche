@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { uploadModelBlockchain , uploadToIPFS, unpinFromIPFS } from '../composables/blockchain';
+import { uploadModelBlockchain } from '../composables/blockchain';
+import { uploadToIPFS, unpinFromIPFS } from '../composables/ipfs';
 import { parseEther } from 'ethers'
 
 const props = defineProps<{
