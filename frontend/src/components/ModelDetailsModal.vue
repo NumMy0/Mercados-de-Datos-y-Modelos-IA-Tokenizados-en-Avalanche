@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import ModelInfoField from './ModelInfoField.vue'
 import LicensePlanCard from './LicensePlanCard.vue'
-import { getModelById, createLicensePlan, cancelSale } from '../composables/blockchain'
+import { getModelById, createLicensePlan, cancelSale, setModelForSale } from '../composables/blockchain'
 import { fetchMetadata } from '../composables/ipfs'
 import { ethers } from 'ethers'
 
@@ -84,6 +84,7 @@ const licensePlanForm = ref<LicensePlanFormData>({
 const salePrice = ref('')
 const transferAddress = ref('')
 const creatingPlan = ref(false)
+const settingForSale = ref(false)
 const cancellingSale = ref(false)
 
 // Computed Properties
@@ -301,18 +302,37 @@ const handleBuyLicense = (planId: number) => {
 }
 
 // Event Handlers - Sale
-const handleSetForSale = () => {
+const handleSetForSale = async () => {
   if (!validateSalePrice()) return
+  if (!props.modelId) return
 
-  emit('setForSale', salePrice.value)
-  
-  // Update local state
-  if (modelData.value) {
-    modelData.value.forSale = true
-    modelData.value.salePrice = salePrice.value
+  try {
+    settingForSale.value = true
+
+    // Convertir precio de AVAX a Wei
+    const priceAvax = String(salePrice.value)
+    const priceWei = (ethers as any).parseEther ? (ethers as any).parseEther(priceAvax) : (ethers as any).utils.parseEther(priceAvax)
+
+    // Llamar a la blockchain y esperar confirmación
+    const receipt = await setModelForSale(props.modelId, priceWei)
+    console.log('setModelForSale receipt:', receipt)
+
+    // Emitir evento para el padre
+    emit('setForSale', salePrice.value)
+
+    // Solo actualizar el estado local después de la confirmación blockchain
+    if (modelData.value) {
+      modelData.value.forSale = true
+      modelData.value.salePrice = salePrice.value
+    }
+
+    resetSaleForm()
+  } catch (err) {
+    console.error('Error poniendo modelo en venta:', err)
+    alert('Error poniendo el modelo en venta. Revisa la consola para más detalles.')
+  } finally {
+    settingForSale.value = false
   }
-  
-  resetSaleForm()
 }
 
 const handleCancelSale = async () => {
@@ -619,9 +639,20 @@ watch(() => props.modelId, (newId) => {
                 </div>
                 <button 
                   type="submit"
-                  class="w-full px-4 py-3 bg-green-500 app-dark:bg-green-600 text-white rounded-lg font-medium hover:bg-green-600 app-dark:hover:bg-green-700 transition-colors"
+                  :disabled="settingForSale"
+                  :class="[
+                    'w-full px-4 py-3 rounded-lg font-medium transition-colors',
+                    settingForSale ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-green-500 app-dark:bg-green-600 text-white hover:bg-green-600 app-dark:hover:bg-green-700'
+                  ]"
                 >
-                  Poner en Venta
+                  <span v-if="!settingForSale">Poner en Venta</span>
+                  <span v-else class="flex items-center justify-center gap-2">
+                    <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    Procesando...
+                  </span>
                 </button>
               </form>
             </div>
