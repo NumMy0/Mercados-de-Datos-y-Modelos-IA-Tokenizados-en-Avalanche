@@ -66,10 +66,10 @@ const loadUserModels = async () => {
           id: model.id || model.modelId,
           name: model.name || `Model #${model.id}`,
           description: model.description || model.tokenURI || 'Sin descripción',
-          price: model.salePrice
-            ? `${model.salePrice} AVAX`
-            : model.basePrice
+          price: model.basePrice
             ? `${model.basePrice} AVAX`
+            : model.salePrice
+            ? `${model.salePrice} AVAX`
             : 'No disponible',
           category: model.category || 'General',
           forSale: Boolean(model.forSale),
