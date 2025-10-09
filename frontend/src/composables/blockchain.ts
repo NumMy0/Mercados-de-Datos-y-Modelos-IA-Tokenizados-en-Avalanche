@@ -4,7 +4,6 @@ import contractABI from "../../AIMarketABI.json"; // Asegúrate de tener este AB
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 const RPC_URL = import.meta.env.VITE_RPC_URL;
-const PINATA_JWT = import.meta.env.VITE_PINATA_JWT;
 
 export async function connectContract() {
     try {
@@ -33,78 +32,6 @@ export async function connectContract() {
         console.error("Error al conectar con el contrato:", error);
         throw error;
     }
-}
-
-export async function uploadToIPFS(file: any) {
-    if (!PINATA_JWT) throw new Error('Missing PINATA_JWT (VITE_PINATA_JWT) environment variable.');
-
-    // Verificar que el archivo es un Blob/File
-    if (!file || (typeof File !== 'undefined' && !(file instanceof File)) && !(file instanceof Blob)) {
-        throw new Error('Invalid file provided to uploadToIPFS. Expected a File or Blob.');
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    let res: Response;
-    try {
-        res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${PINATA_JWT}`,
-                // NOTE: don't set Content-Type; browser will set the multipart boundary
-            },
-            body: formData,
-        });
-    } catch (err) {
-        throw new Error(`Network error uploading to Pinata: ${String(err)}`);
-    }
-
-    const text = await res.text();
-    if (!res.ok) {
-        // Intentar parsear JSON si es posible
-        let body = text;
-        try { body = JSON.parse(text); } catch (e) { /* keep text */ }
-        throw new Error(`Pinata upload failed: ${res.status} ${res.statusText} - ${JSON.stringify(body)}`);
-    }
-
-    // Si la respuesta fue JSON válido, parsearlo
-    let data: any;
-    try { data = JSON.parse(text); } catch (e) { data = { raw: text }; }
-    console.log("Archivo subido a IPFS:", data);
-    return data.IpfsHash; // el CID del archivo
-}
-
-/**
- * unpinFromIPFS
- * Elimina (unpin) un CID de Pinata usando la API y el JWT configurado en VITE_PINATA_JWT.
- * Devuelve true si se removió correctamente.
- */
-export async function unpinFromIPFS(cid: string) {
-    if (!PINATA_JWT) throw new Error('Missing PINATA_JWT (VITE_PINATA_JWT) environment variable.');
-    if (!cid) throw new Error('CID is required to unpin');
-
-    const url = `https://api.pinata.cloud/pinning/unpin/${cid}`;
-    let res: Response;
-    try {
-        res = await fetch(url, {
-            method: 'DELETE',
-            headers: {
-                Authorization: `Bearer ${PINATA_JWT}`,
-            }
-        });
-    } catch (err) {
-        throw new Error(`Network error while unpinning ${cid}: ${String(err)}`);
-    }
-
-    const text = await res.text();
-    if (!res.ok) {
-        let body = text;
-        try { body = JSON.parse(text); } catch (e) { /* keep text */ }
-        throw new Error(`Pinata unpin failed for ${cid}: ${res.status} ${res.statusText} - ${JSON.stringify(body)}`);
-    }
-
-    return true;
 }
 
 /**
@@ -333,11 +260,24 @@ export async function getModelById(modelId: number | string) {
         plans = null
     }
 
+    // Intentar leer tokenURI si el contrato implementa ERC721 tokenURI
+    let tokenURI: string | null = null
+    try {
+        if (typeof (contract as any).tokenURI === 'function') {
+            tokenURI = await (contract as any).tokenURI(modelId)
+        }
+    } catch (e) {
+        // no crítico; el contrato puede no exponer tokenURI o la llamada puede fallar en algunos providers
+        console.debug('No se pudo leer tokenURI desde el contrato en getModelById:', e)
+        tokenURI = null
+    }
+
     return {
         id: toStr(id),
         author: author ?? null,
         name: name ?? null,
         ipfsHash: ipfsHash ?? null,
+        tokenURI: tokenURI,
         basePriceWei: toStr(basePriceWei),
         basePrice: basePriceReadable,
         forSale: Boolean(forSale),
@@ -347,6 +287,7 @@ export async function getModelById(modelId: number | string) {
         plans
     }
 }
+
 
 
 
