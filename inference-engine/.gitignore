@@ -1,57 +1,60 @@
-# Archivo de configuración de Git para ignorar archivos y directorios no deseados.
-# Ver: https://git-scm.com/docs/gitignore
+# Archivo .gitignore para el proyecto 'inference-engine'
 
-# 1. Dependencias y paquetes
-# La carpeta node_modules contiene todas las dependencias y puede ser muy pesada.
-# Siempre debe regenerarse ejecutando 'npm install' o 'yarn install'.
+# ------------------------------------
+# 1. Dependencias de Node.js
+# ------------------------------------
 /node_modules
+/npm-debug.log*
+/yarn-debug.log*
+/yarn-error.log*
+.pnp
+.pnp.js
+.pnpm-debug.log*
 
-# 2. Archivos de entorno (.env)
-# Estos archivos contienen secretos, claves de API y otra información sensible.
-# Es una mala práctica de seguridad subirlos al repositorio.
-# Se debe subir un archivo de ejemplo como '.env.example'.
-.env
-.env.local
-.env.*.local
-
-# 3. Modelos de Machine Learning y Datos Pesados
-# Los modelos (.onnx) pueden ser archivos binarios muy grandes.
-# Subirlos directamente a Git puede hacer que el repositorio sea extremadamente lento.
-# Es mejor gestionarlos con Git LFS (Large File Storage) o descargarlos desde un servicio de almacenamiento.
-models/*.onnx
-models/**/*.onnx
-
-# Descomenta la siguiente línea si tienes otros datos grandes que no deben estar en el repo.
-# data/
-
-# 4. Logs y reportes
-# Archivos de registro generados durante la ejecución o para depuración.
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# 5. Archivos de compilación y salida (Build)
-# Directorios donde se guardan los archivos transpilados o empaquetados para producción.
+# ------------------------------------
+# 2. Archivos de compilación y temporales
+# ------------------------------------
 /dist
 /build
-/out
+/tmp
 
-# 6. Reportes de pruebas y cobertura de código
-coverage
-.nyc_output
+# ------------------------------------
+# 3. Entorno y Configuración Local
+# ------------------------------------
+# El archivo .env contiene secretos o configuración local
+.env
+.env.local
+.env.development
+.env.test
 
-# 7. Archivos de sistema operativo
-# Archivos autogenerados por los sistemas operativos que no aportan al proyecto.
+# ------------------------------------
+# 4. Archivos de Modelo y Caché
+# ------------------------------------
+# Los modelos .onnx pueden ser archivos muy grandes.
+# Es mejor excluirlos y usar Git LFS si necesitas rastrearlos,
+# o excluirlos completamente y descargarlos al hacer el setup.
+# En este caso, excluimos todo el directorio 'models/'
+# excepto si Git LFS ya está en uso, en cuyo caso, esta línea ignora si no está configurado.
+/models/
+
+# Si decides usar Git LFS, puedes comentar la línea anterior, pero
+# aseguramos que el archivo de modelo real no se suba si es gigante:
+# *.onnx
+
+# ------------------------------------
+# 5. Datos de Prueba y Cargas de Inferencia (Payloads)
+# ------------------------------------
+# Los archivos de payload de inferencia contienen datos codificados (Base64) que son variables y grandes.
+# Los archivos de imágenes de prueba pueden ser grandes y no son código.
+/data/test_images/
+inference_payload.json
+
+# ------------------------------------
+# 6. Archivos del Sistema Operativo
+# ------------------------------------
+# macOS
 .DS_Store
-Thumbs.db
-._*
 
-# 8. Archivos de configuración de editores de código
-# Para evitar conflictos con las preferencias personales de cada desarrollador.
-.vscode/
-.idea/
-*.sublime-workspace
-*.sublime-project
+# Windows
+Thumbs.db
+ehthumbs.db

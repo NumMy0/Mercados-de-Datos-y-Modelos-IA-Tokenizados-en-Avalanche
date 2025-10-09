@@ -102,7 +102,7 @@ curl -X POST http://localhost:3000/api/inference/preload \
   -H "Content-Type: application/json" \
   -d '{
     "model_id": "resnet18",
-    "model_path": "./models/resnet18.onnx",
+    "model_path": "resnet18.onnx", 
     "metadata": {
       "model_type": "image_classification",
       "input_shape": [1, 3, 224, 224],
@@ -112,16 +112,24 @@ curl -X POST http://localhost:3000/api/inference/preload \
   }'
 
 # Ejecutar inferencia (reemplazar con tu imagen)
+# Asumiendo que quieres usar la imagen data/test_images/cat.jpg
+# 1. Codifica la imagen a Base64 y guárdala en una variable
+IMAGE_BASE64=$(base64 -w 0 data/test_images/cat.jpg)
+# 2. Crea el archivo JSON de carga (utilizando la variable $IMAGE_BASE64)
+cat << EOF > inference_payload.json
+{
+  "model_id": "resnet18",
+  "input": {
+    "type": "image",
+    "data": "data:image/jpeg;base64,${IMAGE_BASE64}"
+  },
+  "options": {"top_k": 5}
+}
+EOF
+# 3. Ejecuta curl leyendo el archivo (la solución al error "Argument list too long")
 curl -X POST http://localhost:3000/api/inference/execute \
   -H "Content-Type: application/json" \
-  -d '{
-    "model_id": "resnet18",
-    "input": {
-      "type": "image",
-      "data": "data:image/jpeg;base64,'$(base64 -w 0 data/test_images/cat.jpg)'"
-    },
-    "options": {"top_k": 5}
-  }'
+  -d @inference_payload.json
 ```
 
 ## 📦 Estructura del Proyecto
