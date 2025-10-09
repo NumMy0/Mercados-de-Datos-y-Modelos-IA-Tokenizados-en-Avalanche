@@ -76,6 +76,38 @@ export async function uploadToIPFS(file: any) {
 }
 
 /**
+ * unpinFromIPFS
+ * Elimina (unpin) un CID de Pinata usando la API y el JWT configurado en VITE_PINATA_JWT.
+ * Devuelve true si se removió correctamente.
+ */
+export async function unpinFromIPFS(cid: string) {
+    if (!PINATA_JWT) throw new Error('Missing PINATA_JWT (VITE_PINATA_JWT) environment variable.');
+    if (!cid) throw new Error('CID is required to unpin');
+
+    const url = `https://api.pinata.cloud/pinning/unpin/${cid}`;
+    let res: Response;
+    try {
+        res = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+                Authorization: `Bearer ${PINATA_JWT}`,
+            }
+        });
+    } catch (err) {
+        throw new Error(`Network error while unpinning ${cid}: ${String(err)}`);
+    }
+
+    const text = await res.text();
+    if (!res.ok) {
+        let body = text;
+        try { body = JSON.parse(text); } catch (e) { /* keep text */ }
+        throw new Error(`Pinata unpin failed for ${cid}: ${res.status} ${res.statusText} - ${JSON.stringify(body)}`);
+    }
+
+    return true;
+}
+
+/**
  * 🔹 Registrar modelo en la blockchain
  */
 
@@ -196,7 +228,12 @@ export async function getAllModelIds() {
             throw new Error('No hay proveedor RPC disponible (define VITE_RPC_URL o conecta MetaMask)')
         }
     }
+<<<<<<< HEAD
     await console.log("Using contract address:", CONTRACT_ADDRESS);
+=======
+
+    console.log("Contract address:", CONTRACT_ADDRESS);
+>>>>>>> dfcd70218771086463d353e7e4a887eff1e1d1f0
     const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, provider)
     
     const raw: any = await (contract as any).getAllModelIds()
