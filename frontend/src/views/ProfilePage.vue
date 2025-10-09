@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import Header from '../components/ui/header.vue'
 import ModelCard from '../components/ui/ModelCard.vue'
 import ModelDetailsModal from '../components/ModelDetailsModal.vue'
+import WithdrawModal from '../components/WithdrawModal.vue'
 import { getAllModelIds, getModelById } from '../composables/blockchain'
 const { isConnected, account } = useWallet()
 
@@ -19,6 +20,7 @@ const userLicenses = ref<any[]>([])
 const loadingModels = ref(false)
 const loadingLicenses = ref(false)
 const walletBalance = ref('0.00')
+const showWithdrawModal = ref(false)
 
 // Computed
 const truncatedAddress = computed(() => {
@@ -186,6 +188,19 @@ const getUsageColor = (percentage: number) => {
   if (percentage >= 70) return 'bg-yellow-500'
   return 'bg-green-500'
 }
+
+const openWithdrawModal = () => {
+  showWithdrawModal.value = true
+}
+
+const closeWithdrawModal = () => {
+  showWithdrawModal.value = false
+}
+
+const handleWithdrawSuccess = async () => {
+  // Actualizar el balance después del retiro exitoso
+  await loadWalletBalance()
+}
 </script>
 
 <template>
@@ -233,7 +248,13 @@ const getUsageColor = (percentage: number) => {
               <!-- Balance -->
               <div class="bg-gradient-to-br from-blue-50 to-blue-100 app-dark:from-blue-900/20 app-dark:to-blue-800/20 p-4 rounded-lg border border-blue-200 app-dark:border-blue-800">
                 <div class="text-xs text-blue-600 app-dark:text-blue-400 font-medium mb-1">Balance</div>
-                <div class="text-xl font-bold text-blue-900 app-dark:text-blue-100">{{ walletBalance }} AVAX</div>
+                <div class="text-xl font-bold text-blue-900 app-dark:text-blue-100 mb-2">{{ walletBalance }} AVAX</div>
+                <button
+                  @click="openWithdrawModal"
+                  class="w-full px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors"
+                >
+                  Retirar Fondos
+                </button>
               </div>
 
               <!-- Models Owned -->
@@ -411,6 +432,14 @@ const getUsageColor = (percentage: number) => {
         </div>
       </div>
     </div>
+
+    <!-- Withdraw Modal -->
+    <WithdrawModal
+      :is-open="showWithdrawModal"
+      :available-balance="walletBalance"
+      @close="closeWithdrawModal"
+      @success="handleWithdrawSuccess"
+    />
 
     <!-- Model Details Modal -->
     <ModelDetailsModal 
