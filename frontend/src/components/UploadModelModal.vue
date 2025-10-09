@@ -19,15 +19,41 @@ const formData = ref({
   category: '',
   price: '',
   modelType: '',
-  features: ''
+  features: '',
+  // Metadata fields requested
+  model_id: '',
+  version: '',
+  // inference config
+  // single JSON field for inference config
+  inference_config_json: ''
 })
 
 const selectedFile = ref<File | null>(null)
+const modelHash = ref<string>('')
 
-const handleFileChange = (e: Event) => {
+// handleFileChange is implemented below with hash computation
+
+// Compute SHA-256 hex digest of the uploaded file and store in modelHash
+async function computeFileHash(file: File) {
+  const arrayBuffer = await file.arrayBuffer()
+  const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+  return hashHex
+}
+
+const handleFileChange = async (e: Event) => {
   const target = e.target as HTMLInputElement
   const file = target.files && target.files[0]
-  if (file) selectedFile.value = file
+  if (file) {
+    selectedFile.value = file
+    try {
+      modelHash.value = await computeFileHash(file)
+    } catch (err) {
+      console.warn('No se pudo calcular el hash del archivo:', err)
+      modelHash.value = ''
+    }
+  }
 }
 
 const handleSubmit = async () => {
@@ -59,11 +85,27 @@ const handleSubmit = async () => {
   }
 
   // 2) Construir y subir metadatos (JSON) a IPFS
+  // parse inference config JSON (user provides a JSON blob)
+  let inferenceConfig: any
+  if (formData.value.inference_config_json && String(formData.value.inference_config_json).trim() !== '') {
+    try {
+      inferenceConfig = JSON.parse(String(formData.value.inference_config_json))
+    } catch (err) {
+      alert('El campo de configuración de inferencia contiene JSON inválido. Corrige antes de continuar.')
+      return
+    }
+  } else {
+    // fallback minimal inference config if the user left it empty
+    inferenceConfig = { model_type: formData.value.modelType || 'unknown' }
+  }
   const metadata = {
-    name: formData.value.title,
+    model_id: formData.value.model_id || formData.value.title,
+    version: formData.value.version || '1.0',
+    model_cid: modelIPFSHash,
+  model_hash: modelHash.value || '',
+    metadata_cid: '',
     description: formData.value.description,
-    category: formData.value.category,
-    features: formData.value.features,
+    inference_config: inferenceConfig
   }
 
   let metadataIPFSHash: string
@@ -127,9 +169,14 @@ const resetForm = () => {
     category: '',
     price: '',
     modelType: '',
-    features: ''
+    features: '',
+    model_id: '',
+    version: '',
+  // model_hash now computed from file
+    inference_config_json: ''
   }
   selectedFile.value = null
+  modelHash.value = ''
 }
 
 const handleClose = () => {
@@ -260,6 +307,25 @@ const handleClose = () => {
                   type="text"
                 >
               </div>
+            </div>
+
+            <!-- Metadata fields (model_id, version) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="text-gray-900 app-dark:text-white font-medium" for="model_id">Model ID</label>
+                <input v-model="formData.model_id" id="model_id" placeholder="resnet18" class="mt-1 w-full bg-gray-50 app-dark:bg-gray-800 rounded-md border border-gray-300 app-dark:border-gray-700 text-gray-900 app-dark:text-white px-3 py-2" type="text">
+              </div>
+              <div>
+                <label class="text-gray-900 app-dark:text-white font-medium" for="version">Version</label>
+                <input v-model="formData.version" id="version" placeholder="2.7" class="mt-1 w-full bg-gray-50 app-dark:bg-gray-800 rounded-md border border-gray-300 app-dark:border-gray-700 text-gray-900 app-dark:text-white px-3 py-2" type="text">
+              </div>
+            </div>
+
+            <!-- Inference config (JSON) -->
+            <div class="mt-4">
+              <label class="text-gray-900 app-dark:text-white font-medium" for="inference_config_json">Inference config (JSON)</label>
+              <textarea v-model="formData.inference_config_json" id="inference_config_json" placeholder='{"model_type":"image_classification","input_shape":[1,3,224,224],"preprocessing":"imagenet","color_format":"RGB"}' class="mt-1 w-full bg-gray-50 app-dark:bg-gray-800 rounded-md border border-gray-300 app-dark:border-gray-700 text-gray-900 app-dark:text-white px-3 py-2 h-32 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+              <p class="text-sm text-gray-500 mt-1">Introduce la configuración de inferencia como JSON válido. Ej: {"model_type":"image_classification","input_shape":[1,3,224,224],"preprocessing":"imagenet","color_format":"RGB"}</p>
             </div>
 
             <!-- Submit Buttons -->
