@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import ModelInfoField from './ModelInfoField.vue'
 import LicensePlanCard from './LicensePlanCard.vue'
+import InferenceModal from './InferenceModal.vue'
 import { getModelById, createLicensePlan, cancelSale, setModelForSale, buyLicense } from '../composables/blockchain'
 import { fetchMetadata } from '../composables/ipfs'
 import { ethers } from 'ethers'
@@ -68,6 +69,7 @@ const emit = defineEmits<{
 // State - UI
 const activeTab = ref<TabType>('details')
 const showLicenseForm = ref(false)
+const isInferenceModalOpen = ref(false)
 
 // State - Model Data
 const modelData = ref<ModelDetails | null>(null)
@@ -122,6 +124,17 @@ const licenseExpiryDate = computed(() => {
 const hasForSalePrice = computed(() => 
   Boolean(modelData.value?.forSale) && Boolean(modelData.value?.salePrice || modelData.value?.basePrice)
 )
+
+// Computed para el modelo de inferencia
+const inferenceModel = computed(() => {
+  if (!modelData.value) return null
+  return {
+    id: parseInt(modelData.value.id),
+    name: modelData.value.name || 'Modelo sin nombre',
+    ipfsHash: modelData.value.ipfsHash || '',
+    category: modelData.value.category || 'General'
+  }
+})
 
 // Data Loading
 const loadModelData = async () => {
@@ -412,6 +425,15 @@ const handleClose = () => {
   resetSaleForm()
 }
 
+// Event Handlers - Inference
+const openInferenceModal = () => {
+  isInferenceModalOpen.value = true
+}
+
+const closeInferenceModal = () => {
+  isInferenceModalOpen.value = false
+}
+
 // Watchers
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
@@ -548,6 +570,19 @@ watch(() => props.modelId, (newId) => {
                   Comprar Modelo
                 </button>
               </div>
+            </div>
+
+            <!-- Inference Button -->
+            <div class="mt-6">
+              <button
+                @click="openInferenceModal"
+                class="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Ejecutar Inferencia con este Modelo
+              </button>
             </div>
           </div>
 
@@ -751,6 +786,13 @@ watch(() => props.modelId, (newId) => {
       </div>
     </div>
   </Transition>
+
+  <!-- Inference Modal -->
+  <InferenceModal
+    :is-open="isInferenceModalOpen"
+    :model="inferenceModel"
+    @close="closeInferenceModal"
+  />
 </template>
 
 <style scoped>

@@ -1,0 +1,26 @@
+{
+  "name": "ai-marketplace-monorepo",
+  "version": "1.0.0",
+  "description": "AI Model Marketplace with Inference Engine",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:inference\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:inference": "cd inference-engine && npm run dev",
+    "start": "concurrently \"npm run start:frontend\" \"npm run start:inference\"",
+    "start:frontend": "cd frontend && npm run build && npm run preview",
+    "start:inference": "cd inference-engine && npm start",
+    "install:all": "npm install && cd frontend && npm install && cd ../inference-engine && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "ai",
+    "blockchain",
+    "marketplace",
+    "inference",
+    "avalanche"
+  ],
+  "author": "",
+  "license": "MIT"
+}

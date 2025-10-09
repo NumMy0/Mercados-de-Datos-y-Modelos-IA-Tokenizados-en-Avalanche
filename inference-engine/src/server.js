@@ -18,7 +18,6 @@ const logger = require("./utils/logger");
 const config = require("./config/config");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // CORS Configuration
 const corsOptions = {
@@ -31,7 +30,7 @@ const corsOptions = {
 
 // Middlewares de seguridad y utilidad
 app.use(helmet());
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(
   morgan("combined", {
     stream: {
@@ -136,12 +135,13 @@ process.on("unhandledRejection", (reason, promise) => {
   process.exit(1);
 });
 
-const PORT = config.server.PORT;
+const PORT = config.server.port;
 const HOST = config.server.host;
 
 // Iniciar servidor
 const server = app.listen(PORT, HOST, () => {
   logger.info(`🚀 Inference Engine started on http://${HOST}:${PORT}`);
+  logger.info(`✅ CORS enabled for: ${config.server.cors.origins.join(", ")}`);
   logger.info(`📊 Environment: ${process.env.NODE_ENV || "development"}`);
   logger.info(`💾 Max models in memory: ${config.maxModelsInMemory}`);
   logger.info(`⏱️  Inference timeout: ${config.inferenceTimeout}ms`);
