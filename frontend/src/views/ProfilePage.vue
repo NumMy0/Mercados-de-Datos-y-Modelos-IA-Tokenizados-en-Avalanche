@@ -123,6 +123,7 @@ const copyAddress = () => {
 
 const handleViewDetails = (modelId: number) => {
   selectedModelId.value = modelId
+  // En el perfil, el usuario siempre es propietario de sus modelos
   isDetailsModalOpen.value = true
 }
 

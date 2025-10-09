@@ -1,21 +1,27 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useWallet } from '../composables/useWallet'
-import { useRouter } from 'vue-router'
 import Header from '../components/ui/header.vue'
 import ModelCard from '../components/ui/ModelCard.vue'
 import UploadModelModal from '../components/UploadModelModal.vue'
 import ModelDetailsModal from '../components/ModelDetailsModal.vue'
+import BuyModelModal from '../components/BuyModelModal.vue'
 import { getAllModelIds, getModelById } from '../composables/blockchain'
 
-const { isConnected, connectWallet, account } = useWallet()
-const router = useRouter()
+const { isConnected, account } = useWallet()
 const isUploadModalOpen = ref(false)
 const isDetailsModalOpen = ref(false)
+const isBuyModalOpen = ref(false)
 const selectedModelId = ref<number | null>(null)
 
 const models = ref<any[]>([])
 const loadingModels = ref(false)
+
+// Computed para obtener el modelo seleccionado completo
+const selectedModel = computed(() => {
+  if (!selectedModelId.value) return null
+  return models.value.find(m => m.id === selectedModelId.value) || null
+})
 
 onMounted(async () => {
   loadingModels.value = true
@@ -29,7 +35,9 @@ onMounted(async () => {
         name: model.name || model.modelName || `Model #${model.id}`,
         description: model.description || model.modelDescription || 'Sin descripción',
         price: model.price ? `${model.price} AVAX` : 'No disponible',
-        category: model.category || model.modelCategory || 'General'
+        category: model.category || model.modelCategory || 'General',
+        owner: model.owner || '0x0000000000000000000000000000000000000000',
+        forSale: model.forSale || false
       }))
     }
   } catch (err) {
@@ -72,11 +80,29 @@ const handleSubmitModel = (formData: any) => {
 
 const handleViewDetails = (modelId: number) => {
   selectedModelId.value = modelId
-  isDetailsModalOpen.value = true
+  
+  // Determinar si mostrar modal de detalles o de compra
+  const model = models.value.find(m => m.id === modelId)
+  if (!model) return
+  
+  const isOwner = account.value && model.owner?.toLowerCase() === account.value.toLowerCase()
+  
+  if (isOwner) {
+    // Si es propietario, mostrar modal de detalles completa
+    isDetailsModalOpen.value = true
+  } else {
+    // Si no es propietario, mostrar modal de compra
+    isBuyModalOpen.value = true
+  }
 }
 
 const handleCloseDetailsModal = () => {
   isDetailsModalOpen.value = false
+  selectedModelId.value = null
+}
+
+const handleCloseBuyModal = () => {
+  isBuyModalOpen.value = false
   selectedModelId.value = null
 }
 
@@ -97,7 +123,14 @@ const handleBuyLicense = (planId: number) => {
 
 const handleBuyModel = () => {
   console.log('buyModel:', selectedModelId.value)
-  alert('Modelo comprado exitosamente!')
+  const model = selectedModel.value
+  if (model) {
+    alert(`Modelo "${model.name}" comprado exitosamente por ${model.price}!`)
+    // Cerrar modal de compra
+    isBuyModalOpen.value = false
+    selectedModelId.value = null
+    // Aquí puedes recargar los modelos o actualizar el estado
+  }
 }
 
 const handleSetForSale = (price: string) => {
@@ -113,13 +146,6 @@ const handleCancelSale = () => {
 const handleTransferModel = (toAddress: string) => {
   console.log('transferModel:', { to: toAddress, modelId: selectedModelId.value })
   alert(`Modelo transferido a ${toAddress}`)
-}
-
-const handleWithdraw = async () => {
-  if (!isConnected.value) return
-  
-  console.log('withdraw() called')
-  alert('Fondos retirados exitosamente!')
 }
 </script>
 
@@ -191,6 +217,15 @@ const handleWithdraw = async () => {
       @set-for-sale="handleSetForSale"
       @cancel-sale="handleCancelSale"
       @transfer-model="handleTransferModel"
+    />
+
+    <!-- Buy Model Modal -->
+    <BuyModelModal 
+      v-if="isBuyModalOpen"
+      :is-open="isBuyModalOpen"
+      :model="selectedModel"
+      @close="handleCloseBuyModal"
+      @buy-model="handleBuyModel"
     />
   </div>
 </template>
