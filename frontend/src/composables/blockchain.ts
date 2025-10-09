@@ -115,6 +115,50 @@ export async function setModelForSale(modelId: number | string, priceWei: string
 }
 
 /**
+ * buyModel
+ * Compra el NFT completo (transacción con value). El caller paga el precio y recibe el NFT.
+ * @param modelId id del modelo
+ * @param priceWei precio en wei (string|number|bigint)
+ */
+export async function buyModel(modelId: number | string, priceWei: string | number | bigint) {
+    if (!window.ethereum) throw new Error('MetaMask no detectado')
+
+    const provider = new (ethers as any).BrowserProvider((window as any).ethereum)
+    const signer = await provider.getSigner()
+    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, signer)
+
+    if (typeof (contract as any).buyModel !== 'function') {
+        throw new Error('La función buyModel no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
+    }
+
+    // Ejecutar la transacción enviando el valor (priceWei)
+    const tx = await (contract as any).buyModel(modelId, { value: priceWei })
+    const receipt = await tx.wait()
+    return receipt
+}
+
+/**
+ * cancelSale
+ * Cancela la venta de un modelo (solo owner puede llamar).
+ * @param modelId id del modelo
+ */
+export async function cancelSale(modelId: number | string) {
+    if (!window.ethereum) throw new Error('MetaMask no detectado')
+
+    const provider = new (ethers as any).BrowserProvider((window as any).ethereum)
+    const signer = await provider.getSigner()
+    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, signer)
+
+    if (typeof (contract as any).cancelSale !== 'function') {
+        throw new Error('La función cancelSale no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
+    }
+
+    const tx = await (contract as any).cancelSale(modelId)
+    const receipt = await tx.wait()
+    return receipt
+}
+
+/**
  * hasActiveLicense
  * Consulta si un usuario tiene licencia activa para un modelo.
  * @param modelId id del modelo
@@ -413,6 +457,8 @@ export async function getModelById(modelId: number | string) {
         plans
     }
 }
+
+
 
 
 

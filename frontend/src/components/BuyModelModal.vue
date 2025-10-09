@@ -152,7 +152,7 @@ const handleClose = () => {
         </div>
 
         <!-- Tabs -->
-        <div v-if="canBuyModel || hasLicenses" class="border-b border-gray-200 app-dark:border-gray-700 px-6">
+        <div v-if="canBuyModel" class="border-b border-gray-200 app-dark:border-gray-700 px-6">
           <div class="flex gap-4">
             <button 
               v-if="canBuyModel"

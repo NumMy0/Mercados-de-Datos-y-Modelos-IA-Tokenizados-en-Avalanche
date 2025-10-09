@@ -6,7 +6,8 @@ import ModelCard from '../components/ui/ModelCard.vue'
 import UploadModelModal from '../components/UploadModelModal.vue'
 import ModelDetailsModal from '../components/ModelDetailsModal.vue'
 import BuyModelModal from '../components/BuyModelModal.vue'
-import { getAllModelIds, getModelById } from '../composables/blockchain'
+import { getAllModelIds, getModelById, buyModel } from '../composables/blockchain'
+import { ethers } from 'ethers'
 import { fetchMetadata } from '../composables/ipfs'
 
 const { isConnected, account } = useWallet()
@@ -75,6 +76,11 @@ onMounted(async () => {
           category,
           ipfsHash: m.ipfsHash,
           tokenURI: m.tokenURI,
+          // bandera para indicar si el modelo está a la venta y precio específico de venta
+          forSale: Boolean(m.forSale),
+          salePriceRaw: m.salePrice ?? m.salePriceWei ?? null,
+          // exponer el valor en wei si el contrato lo devuelve (string)
+          salePriceWei: m.salePriceWei ?? null,
         }
       })
     )
@@ -168,15 +174,61 @@ const handleBuyLicense = (planId: number) => {
   }
 }
 
-const handleBuyModel = () => {
-  console.log('buyModel:', selectedModelId.value)
-  const model = selectedModel.value
-  if (model) {
+const handleBuyModel = async () => {
+  try {
+    console.log('buyModel:', selectedModelId.value)
+    const model = selectedModel.value
+    if (!model) return
+
+    // Preferir el valor en wei devuelto por el contrato (salePriceWei).
+    // Esto asegura que la wallet solicitará exactamente la cantidad correcta sin entrada manual del usuario.
+    let priceWei: any = null
+    try {
+      if (model.salePriceWei) {
+        // salePriceWei puede ser un string decimal (wei) o hex; convertir a BigInt para ethers
+        const asWei = String(model.salePriceWei)
+        // Si viene en hex con 0x, BigInt lo soporta
+        priceWei = BigInt(asWei)
+      } else {
+        // Fallback: tomar el precio legible y convertir a wei (AVAX -> wei)
+        const rawPrice = model.salePriceRaw ?? model.priceRaw
+        if (!rawPrice) {
+          alert('No se pudo determinar el precio del modelo')
+          return
+        }
+        const asStr = String(rawPrice).trim()
+        if (!asStr.match(/^[0-9]+(\.[0-9]+)?$/)) {
+          alert('Precio inválido')
+          return
+        }
+        priceWei = ethers.parseEther(asStr)
+      }
+    } catch (e) {
+      console.error('Error convirtiendo precio:', e)
+      alert('Error procesando el precio. Revisa la consola.')
+      return
+    }
+
+    // Ejecutar la compra on-chain
+    const receipt = await buyModel(Number(model.id), priceWei)
+    console.log('Modelo comprado, receipt:', receipt)
+
+    // Actualizar estado local: marcar no en venta y actualizar owner al account actual si está disponible
+    const idx = models.value.findIndex(m => String(m.id) === String(model.id))
+    if (idx !== -1) {
+      models.value[idx].forSale = false
+      // si hay account conectado, asignarlo como nuevo owner
+      if (account.value) {
+        models.value[idx].owner = account.value
+      }
+    }
+
     alert(`Modelo "${model.name}" comprado exitosamente por ${model.price}!`)
-    // Cerrar modal de compra
     isBuyModalOpen.value = false
     selectedModelId.value = null
-    // Aquí puedes recargar los modelos o actualizar el estado
+  } catch (err) {
+    console.error('Error al comprar modelo:', err)
+    alert('Error al comprar modelo. Revisa la consola.')
   }
 }
 

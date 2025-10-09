@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import ModelInfoField from './ModelInfoField.vue'
 import LicensePlanCard from './LicensePlanCard.vue'
-import { getModelById, createLicensePlan } from '../composables/blockchain'
+import { getModelById, createLicensePlan, cancelSale } from '../composables/blockchain'
 import { fetchMetadata } from '../composables/ipfs'
 import { ethers } from 'ethers'
 
@@ -84,6 +84,7 @@ const licensePlanForm = ref<LicensePlanFormData>({
 const salePrice = ref('')
 const transferAddress = ref('')
 const creatingPlan = ref(false)
+const cancellingSale = ref(false)
 
 // Computed Properties
 const ownerAddress = computed(() => {
@@ -314,12 +315,28 @@ const handleSetForSale = () => {
   resetSaleForm()
 }
 
-const handleCancelSale = () => {
-  emit('cancelSale')
-  
-  // Update local state
-  if (modelData.value) {
-    modelData.value.forSale = false
+const handleCancelSale = async () => {
+  if (!props.modelId) return
+
+  try {
+    cancellingSale.value = true
+    const receipt = await cancelSale(props.modelId)
+    console.log('cancelSale receipt:', receipt)
+
+    // Emitir evento para el padre
+    emit('cancelSale')
+
+    // Update local state
+    if (modelData.value) {
+      modelData.value.forSale = false
+      modelData.value.salePrice = null
+      modelData.value.salePriceWei = null
+    }
+  } catch (err) {
+    console.error('Error cancelando venta on-chain:', err)
+    alert('Error cancelando la venta. Revisa la consola para más detalles.')
+  } finally {
+    cancellingSale.value = false
   }
 }
 
@@ -618,9 +635,20 @@ watch(() => props.modelId, (newId) => {
               </p>
               <button 
                 @click="handleCancelSale"
-                class="mt-6 w-full px-4 py-2 bg-red-500 app-dark:bg-red-600 text-white rounded-lg hover:bg-red-600 app-dark:hover:bg-red-700 transition-colors font-medium"
+                :disabled="cancellingSale"
+                :class="[
+                  'mt-6 w-full px-4 py-2 rounded-lg transition-colors font-medium',
+                  cancellingSale ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-red-500 app-dark:bg-red-600 text-white hover:bg-red-600 app-dark:hover:bg-red-700'
+                ]"
               >
-                Cancelar Venta
+                <span v-if="!cancellingSale">Cancelar Venta</span>
+                <span v-else class="flex items-center justify-center gap-2">
+                  <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                  Cancelando...
+                </span>
               </button>
             </div>
           </div>
