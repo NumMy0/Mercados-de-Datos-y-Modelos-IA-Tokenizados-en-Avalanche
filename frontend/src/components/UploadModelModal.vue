@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { uploadModelBlockchain , uploadToIPFS } from '../composables/blockchain';
+import { parseEther } from 'ethers'
 
 const props = defineProps<{
   isOpen: boolean
@@ -20,6 +21,14 @@ const formData = ref({
   features: ''
 })
 
+const selectedFile = ref<File | null>(null)
+
+const handleFileChange = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  const file = target.files && target.files[0]
+  if (file) selectedFile.value = file
+}
+
 const handleSubmit = async () => {
   // Validación básica
   if (!formData.value.title || !formData.value.description || !formData.value.price) {
@@ -27,33 +36,63 @@ const handleSubmit = async () => {
     return
   }
 
+  if (!selectedFile.value) {
+    alert('Por favor selecciona el archivo del modelo a subir')
+    return
+  }
+
   emit('submit', formData.value)
 
+  // 1) Subir archivo del modelo a IPFS
+  let modelIPFSHash: string
+  try {
+    modelIPFSHash = await uploadToIPFS(selectedFile.value as File)
+  } catch (err) {
+    alert(`Error al subir el archivo del modelo a IPFS: ${String(err)}`)
+    return
+  }
+
+  if (!modelIPFSHash) {
+    alert('Error al subir el archivo del modelo a IPFS')
+    return
+  }
+
+  // 2) Construir y subir metadatos (JSON) a IPFS
   const metadata = {
     name: formData.value.title,
     description: formData.value.description,
     category: formData.value.category,
-    features: formData.value.features
+    features: formData.value.features,
   }
 
-  const modelIPFSHash = await uploadToIPFS(metadata)
-  if (!modelIPFSHash) {
-    alert('Error al subir los metadatos a IPFS')
+  let metadataIPFSHash: string
+  try {
+    const blob = new Blob([JSON.stringify(metadata)], { type: 'application/json' })
+    metadataIPFSHash = await uploadToIPFS(blob)
+  } catch (err) {
+    alert(`Error al subir los metadatos a IPFS: ${String(err)}`)
     return
   }
-
-  const metadataIPFSHash = await uploadToIPFS(metadata);
 
   if (!metadataIPFSHash) {
     alert('Error al subir los metadatos a IPFS')
     return
   }
 
-  // Subir modelo a la blockchain
+  console.log('sigue subir a block')
+  // 3) Subir modelo a la blockchain: convertir precio legible (AVAX) a wei
+  let priceWei: bigint
+  try {
+    priceWei = parseEther(String(formData.value.price))
+  } catch (err) {
+    alert(`Precio inválido: ${String(err)}`)
+    return
+  }
+
   await uploadModelBlockchain(
     formData.value.title,
     modelIPFSHash,
-    formData.value.price,
+    priceWei,
     metadataIPFSHash,
   )
 
@@ -69,6 +108,7 @@ const resetForm = () => {
     modelType: '',
     features: ''
   }
+  selectedFile.value = null
 }
 
 const handleClose = () => {
@@ -202,6 +242,21 @@ const handleClose = () => {
             </div>
 
             <!-- Submit Buttons -->
+            <!-- File upload -->
+            <div>
+              <label class="text-gray-900 app-dark:text-white font-medium" for="modelFile">
+                Archivo del Modelo *
+              </label>
+              <input
+                id="modelFile"
+                type="file"
+                @change="handleFileChange"
+                accept="*/*"
+                class="mt-1 w-full bg-gray-50 app-dark:bg-gray-800 rounded-md border border-gray-300 app-dark:border-gray-700 text-gray-900 app-dark:text-white px-3 py-2"
+                required
+              />
+            </div>
+
             <div class="flex justify-end gap-3 pt-4 mt-2">
               <button 
                 @click="handleClose"
