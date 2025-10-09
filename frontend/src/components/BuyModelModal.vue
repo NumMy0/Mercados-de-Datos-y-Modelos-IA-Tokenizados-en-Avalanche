@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { getModelById } from '../composables/blockchain'
+import { getModelById, buyLicense } from '../composables/blockchain'
+import { ethers } from 'ethers'
 import LicensePlanCard from './LicensePlanCard.vue'
 
 interface ModelDetails {
@@ -17,6 +18,7 @@ interface LicensePlan {
   id: number
   name: string
   price: string
+  priceWei?: string | null
   duration: number
   active: boolean
 }
@@ -65,9 +67,10 @@ const loadModelData = async () => {
       licensePlans.value = data.plans
         .filter((p: any) => p.active) // Solo planes activos
         .map((p: any, index: number) => ({
-          id: index + 1,
+          id: p.id ?? index,
           name: p.name || `Plan ${index + 1}`,
           price: p.price || '0',
+          priceWei: p.priceWei ?? null,
           duration: p.duration || 30,
           active: p.active !== false
         }))
@@ -111,9 +114,32 @@ const handleBuyModel = async () => {
 }
 
 const handleBuyLicense = async (planId: number) => {
+  if (!props.model?.id) return
+
+  const plan = licensePlans.value.find(p => p.id === planId)
+  if (!plan) {
+    alert('Plan no encontrado')
+    return
+  }
+
   isProcessing.value = true
   try {
+    // Prefer priceWei if available, otherwise parse the readable price
+    let priceWei: any = plan.priceWei ?? null
+    if (!priceWei) {
+      const priceAvax = String(plan.price ?? '0')
+      priceWei = (ethers as any).parseEther ? (ethers as any).parseEther(priceAvax) : (ethers as any).utils.parseEther(priceAvax)
+    }
+
+    const receipt = await buyLicense(props.model.id, planId, priceWei)
+    console.log('buyLicense receipt:', receipt)
+
+    // Emit success to parent and close modal
     emit('buyLicense', planId)
+    emit('close')
+  } catch (err: any) {
+    console.error('Error comprando licencia desde BuyModelModal:', err)
+    alert('No se pudo comprar la licencia: ' + (err && err.message ? err.message : String(err)))
   } finally {
     isProcessing.value = false
   }

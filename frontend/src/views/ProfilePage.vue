@@ -6,7 +6,7 @@ import Header from '../components/ui/header.vue'
 import ModelCard from '../components/ui/ModelCard.vue'
 import ModelDetailsModal from '../components/ModelDetailsModal.vue'
 import WithdrawModal from '../components/WithdrawModal.vue'
-import { getAllModelIds, getModelById, getPendingWithdrawal } from '../composables/blockchain'
+import { getAllModelIds, getModelById, getPendingWithdrawal, hasActiveLicense, getLicenseExpiry } from '../composables/blockchain'
 const { isConnected, account } = useWallet()
 
 const router = useRouter()
@@ -104,12 +104,49 @@ const loadUserModels = async () => {
 
 const loadUserLicenses = async () => {
   loadingLicenses.value = true
+  userLicenses.value = []
   try {
-    // TODO: Implementar función para obtener licencias del usuario desde blockchain
-    // Simulación temporal
-    userLicenses.value = [
+    if (!account.value) return
 
-    ]
+    // Obtener todos los modelos y chequear si el usuario tiene licencia activa
+    const ids = await getAllModelIds()
+    if (!ids || ids.length === 0) {
+      userLicenses.value = []
+      return
+    }
+
+    // Revisar en paralelo pero construyendo solo los activos
+    const checks = await Promise.all(ids.map(async (id: any) => {
+      try {
+        const active = await hasActiveLicense(id, account.value as string)
+        if (!active) return null
+
+        const expiry = await getLicenseExpiry(id, account.value as string)
+        // Obtener nombre del modelo para mostrar
+        let modelName = `Model #${id}`
+        try {
+          const m = await getModelById(id)
+          if (m && m.name) modelName = m.name
+        } catch (e) {
+          // ignore - keep fallback name
+        }
+
+        return {
+          id: `${id}-${account.value}`,
+          modelId: Number(id),
+          modelName,
+          planName: null,
+          isActive: true,
+          expiryTimestamp: expiry || 0,
+          expiryDate: expiry ? new Date(Number(expiry) * 1000).toLocaleDateString() : 'N/A',
+        }
+      } catch (e) {
+        console.debug('Error verificando licencia para modelo', id, e)
+        return null
+      }
+    }))
+
+    userLicenses.value = checks.filter(Boolean) as any[]
   } catch (err) {
     console.error('Error cargando licencias:', err)
   } finally {
@@ -195,15 +232,7 @@ const handleTransferModel = (toAddress: string) => {
   alert(`Modelo transferido a ${toAddress}`)
 }
 
-const getUsagePercentage = (used: number, limit: number) => {
-  return (used / limit) * 100
-}
-
-const getUsageColor = (percentage: number) => {
-  if (percentage >= 90) return 'bg-red-500'
-  if (percentage >= 70) return 'bg-yellow-500'
-  return 'bg-green-500'
-}
+// Uso eliminado: las licencias ahora se muestran por tiempo restante, no por uso
 
 const openWithdrawModal = async () => {
   // refrescar monto pendiente antes de mostrar
@@ -409,26 +438,11 @@ const handleWithdrawSuccess = async () => {
                     Plan: <span class="font-medium">{{ license.planName }}</span>
                   </p>
 
-                  <!-- Usage Progress -->
+                  <!-- Time-based license info -->
                   <div class="mb-2">
-                    <div class="flex justify-between text-xs text-gray-600 app-dark:text-gray-400 mb-1">
-                      <span>Uso: {{ license.usageCount }} / {{ license.usageLimit }}</span>
-                      <span>{{ Math.round(getUsagePercentage(license.usageCount, license.usageLimit)) }}%</span>
-                    </div>
-                    <div class="w-full bg-gray-200 app-dark:bg-gray-700 rounded-full h-2">
-                      <div
-                        :class="[
-                          'h-2 rounded-full transition-all',
-                          getUsageColor(getUsagePercentage(license.usageCount, license.usageLimit))
-                        ]"
-                        :style="{ width: `${getUsagePercentage(license.usageCount, license.usageLimit)}%` }"
-                      ></div>
-                    </div>
+                    <p class="text-sm text-gray-700 app-dark:text-gray-300">Expira: <span class="font-medium">{{ license.expiryDate }}</span></p>
+                    <p class="text-sm text-gray-600 app-dark:text-gray-400">Días restantes: <span class="font-semibold">{{ license.daysLeft ?? 0 }}</span></p>
                   </div>
-
-                  <p class="text-xs text-gray-500 app-dark:text-gray-500">
-                    Expira: {{ license.expiryDate }}
-                  </p>
                 </div>
 
                 <!-- Actions -->

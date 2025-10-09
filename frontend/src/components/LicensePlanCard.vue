@@ -7,7 +7,7 @@ interface LicensePlan {
   active: boolean
 }
 
-const props = defineProps<{
+defineProps<{
   plan: LicensePlan
   isOwner: boolean
 }>()

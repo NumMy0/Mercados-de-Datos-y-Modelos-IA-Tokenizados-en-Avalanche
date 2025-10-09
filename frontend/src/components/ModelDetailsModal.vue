@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import ModelInfoField from './ModelInfoField.vue'
 import LicensePlanCard from './LicensePlanCard.vue'
-import { getModelById, createLicensePlan, cancelSale, setModelForSale } from '../composables/blockchain'
+import { getModelById, createLicensePlan, cancelSale, setModelForSale, buyLicense } from '../composables/blockchain'
 import { fetchMetadata } from '../composables/ipfs'
 import { ethers } from 'ethers'
 
@@ -86,6 +86,7 @@ const transferAddress = ref('')
 const creatingPlan = ref(false)
 const settingForSale = ref(false)
 const cancellingSale = ref(false)
+const buyingLicense = ref(false)
 
 // Computed Properties
 const ownerAddress = computed(() => {
@@ -144,7 +145,7 @@ const loadModelData = async () => {
     // Mapear planes y agregar ids si faltan
     const plans: LicensePlan[] | null = raw.plans
       ? (raw.plans as any[]).map((p: any, i: number) => ({
-          id: p.id ?? i + 1,
+          id: p.id ?? i,
           name: String(p.name ?? `Plan ${i + 1}`),
           // asegurar price como string para la UI
           price: String(p.price ?? '0'),
@@ -293,12 +294,41 @@ const handleTogglePlanActive = (planId: number, currentActive: boolean) => {
   if (plan) plan.active = !currentActive
 }
 
-const handleBuyLicense = (planId: number) => {
-  emit('buyLicense', planId)
-  
-  // Update local state
-  userHasLicense.value = true
-  licenseExpiry.value = Math.floor(Date.now() / 1000) + 2592000
+const handleBuyLicense = async (planId: number) => {
+  console.log('entrar');
+  if (!props.modelId) return
+
+  const plan = licensePlans.value.find(p => p.id === planId)
+  if (!plan) {
+    alert('Plan no encontrado')
+    return
+  }
+
+  try {
+    buyingLicense.value = true
+
+    // Determine priceWei: prefer plan.priceWei, fallback to parseEther(plan.price)
+    let priceWei: any = plan.priceWei ?? null
+    if (!priceWei) {
+      const priceAvax = String(plan.price ?? '0')
+      priceWei = (ethers as any).parseEther ? (ethers as any).parseEther(priceAvax) : (ethers as any).utils.parseEther(priceAvax)
+    }
+
+    const receipt = await buyLicense(props.modelId, planId, priceWei)
+    console.log('buyLicense receipt:', receipt)
+
+    // Update local state after successful tx
+    userHasLicense.value = true
+    licenseExpiry.value = Math.floor(Date.now() / 1000) + 2592000
+
+    // Emit to parent that a license was bought (after success)
+    emit('buyLicense', planId)
+  } catch (err: any) {
+    console.error('Error comprando licencia:', err)
+    alert('No se pudo comprar la licencia: ' + (err && err.message ? err.message : String(err)))
+  } finally {
+    buyingLicense.value = false
+  }
 }
 
 // Event Handlers - Sale
