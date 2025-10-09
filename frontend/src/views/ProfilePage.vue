@@ -6,8 +6,8 @@ import Header from '../components/ui/header.vue'
 import ModelCard from '../components/ui/ModelCard.vue'
 import ModelDetailsModal from '../components/ModelDetailsModal.vue'
 import { getAllModelIds, getModelById } from '../composables/blockchain'
+const { isConnected, account, connectWallet } = useWallet()
 
-const { isConnected, account } = useWallet()
 const router = useRouter()
 
 // State
@@ -40,21 +40,41 @@ onMounted(async () => {
 
 const loadUserModels = async () => {
   loadingModels.value = true
+  userModels.value = []
   try {
+    // Si no hay cuenta, no intentamos cargar
+    if (!account.value) return
+
     const ids = await getAllModelIds()
     if (ids && ids.length) {
       const fetched = await Promise.all(ids.map((id: any) => getModelById(id)))
-      
-      // Filtrar solo los modelos que pertenecen al usuario
+
+      // Filtrar solo los modelos cuyo author/owner coincide con la cuenta conectada
       userModels.value = fetched
-        .filter((model: any) => model.owner?.toLowerCase() === account.value?.toLowerCase())
+        .filter((model: any) => {
+          // getModelById devuelve la propiedad `author`; algunos contratos/implementaciones
+          // pueden usar `owner` o nombres alternativos, así que intentamos varios fallbacks.
+          const ownerAddr = (model.author || model.owner || model.ownerAddress || model.authorAddress)
+          if (!ownerAddr || !account.value) return false
+          try {
+            return String(ownerAddr).toLowerCase() === String(account.value).toLowerCase()
+          } catch (e) {
+            return false
+          }
+        })
         .map((model: any) => ({
           id: model.id || model.modelId,
-          name: model.name || model.modelName || `Model #${model.id}`,
-          description: model.description || model.modelDescription || 'Sin descripción',
-          price: model.price ? `${model.price} AVAX` : 'No disponible',
-          category: model.category || model.modelCategory || 'General',
-          forSale: model.forSale || false
+          name: model.name || `Model #${model.id}`,
+          description: model.description || model.tokenURI || 'Sin descripción',
+          price: model.salePrice
+            ? `${model.salePrice} AVAX`
+            : model.basePrice
+            ? `${model.basePrice} AVAX`
+            : 'No disponible',
+          category: model.category || 'General',
+          forSale: Boolean(model.forSale),
+          // conservar el objeto crudo por si otros componentes necesitan más datos
+          _raw: model
         }))
     }
   } catch (err) {
