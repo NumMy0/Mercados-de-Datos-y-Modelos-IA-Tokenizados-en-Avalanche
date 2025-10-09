@@ -45,8 +45,8 @@ const handleViewDetails = () => {
       
       <!-- Price -->
       <div class="mb-3 sm:mb-4">
-        <span class="text-xl sm:text-2xl font-bold text-gray-900 app-dark:text-gray-100">
-          {{ model.price }}
+        <span class="text-xl sm:text-xl font-bold text-gray-900 app-dark:text-gray-100">
+          Precio base: {{ model.price }}
         </span>
       </div>
 
