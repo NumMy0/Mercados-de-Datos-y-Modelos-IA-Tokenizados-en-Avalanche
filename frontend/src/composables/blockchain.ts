@@ -68,6 +68,94 @@ export async function uploadModelBlockchain(name: string, ipfsHash: string, base
 
 
 /**
+ * createLicensePlan
+ * Crea un nuevo plan de licencia para un modelo (solo owner puede llamar en el contrato).
+ * @param modelId id del modelo
+ * @param name nombre del plan
+ * @param priceWei precio en wei (string|number|bigint). Si deseas pasar AVAX legible, conviértelo con ethers.parseEther en el llamador.
+ * @param duration duración en segundos (o en la unidad que tu contrato espere)
+ */
+export async function createLicensePlan(modelId: number | string, name: string, priceWei: string | number | bigint, duration: number) {
+    if (!window.ethereum) throw new Error('MetaMask no detectado')
+
+    const provider = new (ethers as any).BrowserProvider((window as any).ethereum)
+    const signer = await provider.getSigner()
+    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, signer)
+
+    if (typeof (contract as any).createLicensePlan !== 'function') {
+        throw new Error('La función createLicensePlan no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
+    }
+
+    // Ejecutar la transacción
+    const tx = await (contract as any).createLicensePlan(modelId, name, priceWei, duration)
+    const receipt = await tx.wait()
+    return receipt
+}
+
+/**
+ * hasActiveLicense
+ * Consulta si un usuario tiene licencia activa para un modelo.
+ * @param modelId id del modelo
+ * @param userAddress dirección del usuario
+ */
+export async function hasActiveLicense(modelId: number | string, userAddress: string) {
+    // provider para lecturas
+    let provider: any
+    if (RPC_URL) {
+        try { provider = new (ethers as any).JsonRpcProvider(RPC_URL) } catch (e) { provider = null }
+    }
+    if (!provider && typeof window !== 'undefined' && (window as any).ethereum) {
+        provider = new (ethers as any).BrowserProvider((window as any).ethereum)
+    }
+    if (!provider) throw new Error('No hay proveedor RPC disponible')
+
+    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, provider)
+    if (typeof (contract as any).hasActiveLicense !== 'function' && typeof (contract as any).checkUserLicense !== 'function') {
+        throw new Error('La función hasActiveLicense/checkUserLicense no está disponible en el contrato.')
+    }
+
+    try {
+        if (typeof (contract as any).hasActiveLicense === 'function') {
+            return await (contract as any).hasActiveLicense(modelId, userAddress)
+        }
+        return await (contract as any).checkUserLicense(modelId, userAddress)
+    } catch (e) {
+        console.error('Error en hasActiveLicense:', e)
+        return false
+    }
+}
+
+/**
+ * getLicenseExpiry
+ * Retorna el timestamp de expiración (segundos) o 0
+ */
+export async function getLicenseExpiry(modelId: number | string, userAddress: string) {
+    let provider: any
+    if (RPC_URL) {
+        try { provider = new (ethers as any).JsonRpcProvider(RPC_URL) } catch (e) { provider = null }
+    }
+    if (!provider && typeof window !== 'undefined' && (window as any).ethereum) {
+        provider = new (ethers as any).BrowserProvider((window as any).ethereum)
+    }
+    if (!provider) throw new Error('No hay proveedor RPC disponible')
+
+    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, provider)
+    if (typeof (contract as any).getLicenseExpiry !== 'function') {
+        throw new Error('La función getLicenseExpiry no está disponible en el contrato.')
+    }
+
+    try {
+        const t: any = await (contract as any).getLicenseExpiry(modelId, userAddress)
+        // t puede ser BigNumber
+        try { return (t as any).toNumber ? (t as any).toNumber() : Number(t) } catch (e) { return Number(t) }
+    } catch (e) {
+        console.error('Error en getLicenseExpiry:', e)
+        return 0
+    }
+}
+
+
+/**
  * getModels
  * Recupera información de varios modelos llamando a `getModelsInfo` del contrato.
  * Devuelve un array de objetos con campos legibles (id y precios como strings).
@@ -246,11 +334,27 @@ export async function getModelById(modelId: number | string) {
                 const priceWei = p?.price ?? null
                 let priceReadable: string | null = null
                 try { if (priceWei != null) priceReadable = (ethers as any).formatEther(priceWei) } catch (e) { priceReadable = null }
+
+                // duration del contrato viene en segundos; convertir a días para la UI
+                let durationDays: number | null = null
+                try {
+                    const rawDur = p?.duration ?? null
+                    if (rawDur != null) {
+                        // Si es BigNumber con toNumber, use toNumber(), si no intente Number()
+                        const seconds = (typeof rawDur.toNumber === 'function') ? rawDur.toNumber() : Number(rawDur)
+                        if (!Number.isNaN(seconds)) {
+                            durationDays = Math.max(0, Math.floor(seconds / (24 * 60 * 60)))
+                        }
+                    }
+                } catch (e) {
+                    durationDays = null
+                }
+
                 return {
                     name: p.name ?? null,
                     priceWei: toStr(priceWei),
                     price: priceReadable,
-                    duration: p.duration ?? null,
+                    duration: durationDays,
                     active: p.active ?? null
                 }
             })

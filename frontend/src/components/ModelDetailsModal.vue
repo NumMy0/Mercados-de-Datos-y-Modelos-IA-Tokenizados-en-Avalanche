@@ -2,26 +2,41 @@
 import { ref, computed, watch } from 'vue'
 import ModelInfoField from './ModelInfoField.vue'
 import LicensePlanCard from './LicensePlanCard.vue'
+import { getModelById, createLicensePlan } from '../composables/blockchain'
+import { fetchMetadata } from '../composables/ipfs'
+import { ethers } from 'ethers'
 
-// Types
+// Types alineados con getModelById y getPlans
 interface LicensePlan {
   id: number
-  name: string
+  name: string | null
   price: string
-  duration: number
-  active: boolean
+  priceWei?: string | null
+  duration?: number | null
+  active?: boolean | null
 }
 
 interface ModelDetails {
-  id: number
-  name: string
-  description: string
-  owner: string
-  category: string
-  price: string
-  forSale: boolean
-  modelType?: string
-  features?: string
+  id: string
+  author: string | null
+  // fallback
+  owner?: string | null
+  name?: string | null
+  ipfsHash?: string | null
+  tokenURI?: string | null
+  basePrice?: string | null
+  basePriceWei?: string | null
+  salePrice?: string | null
+  salePriceWei?: string | null
+  forSale?: boolean
+  plansCount?: number | null
+  plans?: LicensePlan[] | null
+
+  // campos UI opcionales
+  description?: string | null
+  category?: string | null
+  modelType?: string | null
+  features?: string | null
 }
 
 interface LicensePlanFormData {
@@ -68,11 +83,33 @@ const licensePlanForm = ref<LicensePlanFormData>({
 })
 const salePrice = ref('')
 const transferAddress = ref('')
+const creatingPlan = ref(false)
 
 // Computed Properties
-const isOwner = computed(() => 
-  props.userAddress && modelData.value?.owner === props.userAddress
-)
+const ownerAddress = computed(() => {
+  return (modelData.value?.author || modelData.value?.owner || '') as string
+})
+
+const ownerShort = computed(() => {
+  const addr = ownerAddress.value || ''
+  if (!addr) return ''
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+})
+
+const displayPrice = computed(() => {
+  if (!modelData.value) return null
+  return modelData.value.salePrice ?? modelData.value.basePrice ?? null
+})
+
+const isOwner = computed(() => {
+  if (!props.userAddress) return false
+  if (!ownerAddress.value) return false
+  try {
+    return ownerAddress.value.toLowerCase() === props.userAddress.toLowerCase()
+  } catch (e) {
+    return false
+  }
+})
 
 const licenseExpiryDate = computed(() => {
   if (!licenseExpiry.value) return null
@@ -80,44 +117,94 @@ const licenseExpiryDate = computed(() => {
 })
 
 const hasForSalePrice = computed(() => 
-  modelData.value?.forSale && modelData.value?.price
+  Boolean(modelData.value?.forSale) && Boolean(modelData.value?.salePrice || modelData.value?.basePrice)
 )
 
 // Data Loading
-const loadModelData = () => {
+const loadModelData = async () => {
   if (!props.modelId) return
-  
-  // Simulated getModel() call
-  modelData.value = {
-    id: props.modelId,
-    name: `Model #${props.modelId}`,
-    description: 'Advanced AI model for various applications',
-    owner: props.userAddress || '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-    category: 'NLP',
-    price: '100',
-    forSale: props.modelId === 1,
-    modelType: 'Transformer',
-    features: 'High accuracy, Fast inference'
+
+  try {
+    const raw = await getModelById(props.modelId)
+
+    // intentar obtener metadata desde tokenURI/ipfsHash si existe
+    let metadata: any = null
+    try {
+      if (raw.tokenURI || raw.ipfsHash) {
+        metadata = await fetchMetadata(props.modelId)
+      }
+    } catch (e) {
+      // no crítico; si falla, seguimos con datos crudos
+      console.debug('No se pudo obtener metadata desde IPFS:', e)
+      metadata = null
+    }
+
+    // Mapear planes y agregar ids si faltan
+    const plans: LicensePlan[] | null = raw.plans
+      ? (raw.plans as any[]).map((p: any, i: number) => ({
+          id: p.id ?? i + 1,
+          name: String(p.name ?? `Plan ${i + 1}`),
+          // asegurar price como string para la UI
+          price: String(p.price ?? '0'),
+          priceWei: p.priceWei ?? null,
+          duration: p.duration ?? null,
+          active: p.active ?? null
+        }))
+      : null
+
+    modelData.value = {
+      id: raw.id,
+      author: raw.author ?? null,
+      owner: raw.author ?? null,
+      name: raw.name ?? metadata?.name ?? null,
+      ipfsHash: raw.ipfsHash ?? null,
+      tokenURI: raw.tokenURI ?? null,
+      basePrice: raw.basePrice ?? null,
+      basePriceWei: raw.basePriceWei ?? null,
+      salePrice: raw.salePrice ?? null,
+      salePriceWei: raw.salePriceWei ?? null,
+      forSale: Boolean(raw.forSale),
+      plansCount: raw.plansCount ?? null,
+      plans,
+
+      description: metadata?.description ?? null,
+      category: metadata?.category ?? null,
+      modelType: metadata?.modelType ?? null,
+      features: metadata?.features ?? null
+    }
+
+    // Popular lista de planes para la UI (si existen)
+    licensePlans.value = plans ?? []
+
+    // Simulación de estado de licencia (por ahora)
+    userHasLicense.value = props.modelId === 1
+    licenseExpiry.value = userHasLicense.value ? Math.floor(Date.now() / 1000) + 2592000 : 0
+  } catch (err) {
+    console.error('Error cargando datos del modelo:', err)
+    // fallback: mantener comportamiento anterior mínimo
+    modelData.value = {
+      id: String(props.modelId),
+      author: props.userAddress || null,
+      owner: props.userAddress || null,
+      name: `Model #${props.modelId}`,
+      description: 'Advanced AI model for various applications',
+      category: 'NLP',
+      basePrice: null,
+      basePriceWei: null,
+      salePrice: null,
+      salePriceWei: null,
+      forSale: Boolean(props.modelId === 1),
+      plansCount: null,
+      plans: null
+    }
+    licensePlans.value = []
   }
 
-  loadLicensePlans()
-  loadUserLicenseStatus()
+  // Reiniciar pestaña
+  activeTab.value = 'details'
 }
 
-const loadLicensePlans = () => {
-  // Simulated getPlans() call
-  licensePlans.value = [
-    { id: 1, name: 'Plan Mensual', price: '10', duration: 30, active: true },
-    { id: 2, name: 'Plan Trimestral', price: '25', duration: 90, active: true },
-    { id: 3, name: 'Plan Anual', price: '80', duration: 365, active: false }
-  ]
-}
-
-const loadUserLicenseStatus = () => {
-  // Simulated hasActiveLicense() and getLicenseExpiry()
-  userHasLicense.value = props.modelId === 1
-  licenseExpiry.value = userHasLicense.value ? Math.floor(Date.now() / 1000) + 2592000 : 0
-}
+// Nota: funciones de fallback eliminadas para evitar warnings; la carga principal ocurre en loadModelData
 
 // Form Helpers
 const resetLicenseForm = () => {
@@ -160,24 +247,40 @@ const validateSalePrice = (): boolean => {
 }
 
 // Event Handlers - License Plans
-const handleCreateLicensePlan = () => {
+const handleCreateLicensePlan = async () => {
   if (!validateLicensePlan()) return
 
+  // Emit local event for parent handling (keeps existing contract)
   emit('createLicensePlan', {
     modelId: props.modelId,
     ...licensePlanForm.value
   })
 
-  // Update local state (simulate backend response)
-  licensePlans.value.push({
-    id: licensePlans.value.length + 1,
-    name: licensePlanForm.value.name,
-    price: licensePlanForm.value.price,
-    duration: licensePlanForm.value.duration,
-    active: true
-  })
+  // Además, intentamos crear el plan en la blockchain usando el helper
+  try {
+    creatingPlan.value = true
 
-  resetLicenseForm()
+    // price en AVAX legible -> convertir a wei
+    const priceAvax = String(licensePlanForm.value.price)
+    const priceWei = (ethers as any).parseEther ? (ethers as any).parseEther(priceAvax) : (ethers as any).utils.parseEther(priceAvax)
+
+    // duration: UI usa días; contrato espera segundos (según documentación)
+    const durationDays = Number(licensePlanForm.value.duration || 0)
+    const durationSeconds = Math.max(1, Math.floor(durationDays * 24 * 60 * 60))
+
+    if (!props.modelId) throw new Error('modelId inválido')
+
+    const receipt = await createLicensePlan(props.modelId, licensePlanForm.value.name, priceWei, durationSeconds)
+    console.log('License plan created on-chain:', receipt)
+
+
+    resetLicenseForm()
+    } catch (err: any) {
+    console.error('Error creando plan en blockchain:', err)
+    alert('No se pudo crear el plan en la blockchain: ' + (err && err.message ? err.message : String(err)))
+  } finally {
+    creatingPlan.value = false
+  }
 }
 
 const handleTogglePlanActive = (planId: number, currentActive: boolean) => {
@@ -205,7 +308,7 @@ const handleSetForSale = () => {
   // Update local state
   if (modelData.value) {
     modelData.value.forSale = true
-    modelData.value.price = salePrice.value
+    modelData.value.salePrice = salePrice.value
   }
   
   resetSaleForm()
@@ -245,7 +348,7 @@ const handleClose = () => {
 // Watchers
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
-    loadModelData()
+    void loadModelData()
     activeTab.value = 'details'
   }
 })
@@ -253,7 +356,7 @@ watch(() => props.isOpen, (isOpen) => {
 // Cargar datos inmediantamente si el modal ya está abierto
 watch(() => props.modelId, (newId) => {
   if (props.isOpen && newId !== null) {
-    loadModelData()
+    void loadModelData()
   }
 }, { immediate: true }
 )
@@ -352,9 +455,9 @@ watch(() => props.modelId, (newId) => {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <ModelInfoField 
                 title="Propietario" 
-                :value="`${modelData.owner.slice(0, 6)}...${modelData.owner.slice(-4)}`"
+                :value="ownerShort"
               />
-              <ModelInfoField title="Categoría" :value="modelData.category" />
+              <ModelInfoField title="Categoría" :value="modelData.category ?? ''" />
               <ModelInfoField v-if="modelData.modelType" title="Tipo" :value="modelData.modelType" />
               <ModelInfoField v-if="modelData.features" title="Características" :value="modelData.features" />
             </div>
@@ -367,7 +470,7 @@ watch(() => props.modelId, (newId) => {
                     Disponible para Compra
                   </h3>
                   <p class="text-3xl font-bold text-green-600 app-dark:text-green-400 mt-2">
-                    {{ modelData.price }} AVAX
+                    {{ displayPrice ?? '-' }} AVAX
                   </p>
                 </div>
                 <button 
@@ -437,9 +540,20 @@ watch(() => props.modelId, (newId) => {
                 </div>
                 <button 
                   type="submit"
-                  class="w-full px-4 py-2 bg-blue-500 app-dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 app-dark:hover:bg-blue-700 transition-colors font-medium"
+                  :disabled="creatingPlan"
+                  :class="[
+                    'w-full px-4 py-2 rounded-lg transition-colors font-medium',
+                    creatingPlan ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-blue-500 app-dark:bg-blue-600 text-white hover:bg-blue-600 app-dark:hover:bg-blue-700'
+                  ]"
                 >
-                  Crear Plan
+                  <span v-if="!creatingPlan">Crear Plan</span>
+                  <span v-else class="flex items-center justify-center gap-2">
+                    <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    Creando...
+                  </span>
                 </button>
               </form>
             </div>
@@ -457,8 +571,8 @@ watch(() => props.modelId, (newId) => {
               <LicensePlanCard
                 v-for="plan in licensePlans"
                 :key="plan.id"
-                :plan="plan"
-                :is-owner="!!isOwner"
+                :plan="{ id: plan.id, name: plan.name ?? '', price: plan.price ?? '0', duration: plan.duration ?? 0, active: !!plan.active }"
+                :is-owner="isOwner"
                 @buy="handleBuyLicense"
                 @toggle-active="handleTogglePlanActive"
               />
@@ -500,7 +614,7 @@ watch(() => props.modelId, (newId) => {
                 ✓ Modelo en Venta
               </h3>
               <p class="text-3xl font-bold text-green-600 app-dark:text-green-400 mt-3">
-                {{ modelData.price }} AVAX
+                {{ displayPrice ?? '-' }} AVAX
               </p>
               <button 
                 @click="handleCancelSale"
