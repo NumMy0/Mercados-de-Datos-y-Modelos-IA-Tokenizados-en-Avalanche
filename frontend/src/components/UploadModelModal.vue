@@ -4,7 +4,7 @@ import { uploadModelBlockchain } from '../composables/blockchain';
 import { uploadToIPFS, unpinFromIPFS } from '../composables/ipfs';
 import { parseEther } from 'ethers'
 
-const props = defineProps<{
+defineProps<{
   isOpen: boolean
 }>()
 

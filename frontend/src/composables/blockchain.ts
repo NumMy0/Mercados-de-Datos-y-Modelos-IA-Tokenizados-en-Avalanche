@@ -5,6 +5,65 @@ import contractABI from "../../AIMarketABI.json"; // Asegúrate de tener este AB
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 const RPC_URL = import.meta.env.VITE_RPC_URL;
 
+// ---- Helpers para evitar código repetido ----
+/**
+ * Convierte BigNumber/hex/bigint a string seguro
+ */
+export function toStr(v: any) {
+    if (v === null || v === undefined) return null
+    try {
+        if (typeof v === 'bigint') return v.toString()
+        if ((v as any)._hex) return (v as any).toString()
+        return String(v)
+    } catch (e) { return String(v) }
+}
+
+/**
+ * Devuelve un provider de lectura: prioriza RPC_URL (JsonRpcProvider) y hace fallback a BrowserProvider
+ */
+export function getReadProvider(): any {
+    let provider: any = null
+    if (RPC_URL) {
+        try { provider = new (ethers as any).JsonRpcProvider(RPC_URL) } catch (e) { provider = null }
+    }
+    if (!provider && typeof window !== 'undefined' && (window as any).ethereum) {
+        provider = new (ethers as any).BrowserProvider((window as any).ethereum)
+    }
+    return provider
+}
+
+/**
+ * Crea un signer desde MetaMask y la instancia del contrato conectada al signer
+ */
+export async function getSignerAndContract() {
+    if (!window.ethereum) throw new Error('MetaMask no detectado')
+    const provider = new (ethers as any).BrowserProvider((window as any).ethereum)
+    const signer = await provider.getSigner()
+    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, signer)
+    return { provider, signer, contract }
+}
+
+/**
+ * Crea una instancia del contrato usando un provider o signer existente
+ */
+export function getContractWith(providerOrSigner: any) {
+    return new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, providerOrSigner)
+}
+
+/**
+ * Intenta formatear wei a Ether legible, retorna null si falla
+ */
+export function formatWei(v: any): string | null {
+    try {
+        if (v == null) return null
+        return (ethers as any).formatEther(v)
+    } catch (e) {
+        return null
+    }
+}
+
+// ---- fin helpers ----
+
 export async function connectContract() {
     try {
         // 1️⃣ Crear provider desde MetaMask
@@ -46,14 +105,10 @@ export async function connectContract() {
  * @param tokenURI Metadatos/tokenURI del modelo
  */
 export async function uploadModelBlockchain(name: string, ipfsHash: string, basePrice: string | number | bigint, tokenURI: string) {
-    if (!window.ethereum) throw new Error("MetaMask no detectado");
     console.log('subiendo a block');
+    const { contract } = await getSignerAndContract()
 
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
-
-        // Safety: asegurarnos de que la función existe en el contrato (evita errores de tipo en tiempo de compilación)
+    // Safety: asegurarnos de que la función existe en el contrato (evita errores de tipo en tiempo de compilación)
     if (typeof (contract as any).uploadModel !== 'function') {
         throw new Error('La función uploadModel no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.');
     }
@@ -76,11 +131,7 @@ export async function uploadModelBlockchain(name: string, ipfsHash: string, base
  * @param duration duración en segundos (o en la unidad que tu contrato espere)
  */
 export async function createLicensePlan(modelId: number | string, name: string, priceWei: string | number | bigint, duration: number) {
-    if (!window.ethereum) throw new Error('MetaMask no detectado')
-
-    const provider = new (ethers as any).BrowserProvider((window as any).ethereum)
-    const signer = await provider.getSigner()
-    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, signer)
+    const { contract } = await getSignerAndContract()
 
     if (typeof (contract as any).createLicensePlan !== 'function') {
         throw new Error('La función createLicensePlan no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
@@ -99,11 +150,7 @@ export async function createLicensePlan(modelId: number | string, name: string, 
  * @param priceWei precio en wei (string|number|bigint)
  */
 export async function setModelForSale(modelId: number | string, priceWei: string | number | bigint) {
-    if (!window.ethereum) throw new Error('MetaMask no detectado')
-
-    const provider = new (ethers as any).BrowserProvider((window as any).ethereum)
-    const signer = await provider.getSigner()
-    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, signer)
+    const { contract } = await getSignerAndContract()
 
     if (typeof (contract as any).setModelForSale !== 'function') {
         throw new Error('La función setModelForSale no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
@@ -121,11 +168,7 @@ export async function setModelForSale(modelId: number | string, priceWei: string
  * @param priceWei precio en wei (string|number|bigint)
  */
 export async function buyModel(modelId: number | string, priceWei: string | number | bigint) {
-    if (!window.ethereum) throw new Error('MetaMask no detectado')
-
-    const provider = new (ethers as any).BrowserProvider((window as any).ethereum)
-    const signer = await provider.getSigner()
-    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, signer)
+    const { contract } = await getSignerAndContract()
 
     if (typeof (contract as any).buyModel !== 'function') {
         throw new Error('La función buyModel no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
@@ -137,17 +180,24 @@ export async function buyModel(modelId: number | string, priceWei: string | numb
     return receipt
 }
 
+export async function buyLicense(modelId: number | string, planIndex: number, priceWei: string | number | bigint) {
+    const { contract } = await getSignerAndContract()
+    if (typeof (contract as any).buyLicense !== 'function') {
+        throw new Error('La función buyLicense no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
+    }
+    // Ejecutar la transacción enviando el valor (priceWei)
+    const tx = await (contract as any).buyLicense(modelId, planIndex, { value: priceWei })
+    const receipt = await tx.wait()
+    return receipt
+}
+
 /**
  * cancelSale
  * Cancela la venta de un modelo (solo owner puede llamar).
  * @param modelId id del modelo
  */
 export async function cancelSale(modelId: number | string) {
-    if (!window.ethereum) throw new Error('MetaMask no detectado')
-
-    const provider = new (ethers as any).BrowserProvider((window as any).ethereum)
-    const signer = await provider.getSigner()
-    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, signer)
+    const { contract } = await getSignerAndContract()
 
     if (typeof (contract as any).cancelSale !== 'function') {
         throw new Error('La función cancelSale no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
@@ -164,11 +214,7 @@ export async function cancelSale(modelId: number | string) {
  * @returns TransactionReceipt
  */
 export async function withdraw() {
-    if (!window.ethereum) throw new Error('MetaMask no detectado')
-
-    const provider = new (ethers as any).BrowserProvider((window as any).ethereum)
-    const signer = await provider.getSigner()
-    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, signer)
+    const { contract } = await getSignerAndContract()
 
     if (typeof (contract as any).withdraw !== 'function') {
         throw new Error('La función withdraw no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
@@ -187,16 +233,9 @@ export async function withdraw() {
  */
 export async function hasActiveLicense(modelId: number | string, userAddress: string) {
     // provider para lecturas
-    let provider: any
-    if (RPC_URL) {
-        try { provider = new (ethers as any).JsonRpcProvider(RPC_URL) } catch (e) { provider = null }
-    }
-    if (!provider && typeof window !== 'undefined' && (window as any).ethereum) {
-        provider = new (ethers as any).BrowserProvider((window as any).ethereum)
-    }
+    const provider = getReadProvider()
     if (!provider) throw new Error('No hay proveedor RPC disponible')
-
-    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, provider)
+    const contract = getContractWith(provider)
     if (typeof (contract as any).hasActiveLicense !== 'function' && typeof (contract as any).checkUserLicense !== 'function') {
         throw new Error('La función hasActiveLicense/checkUserLicense no está disponible en el contrato.')
     }
@@ -217,16 +256,9 @@ export async function hasActiveLicense(modelId: number | string, userAddress: st
  * Retorna el timestamp de expiración (segundos) o 0
  */
 export async function getLicenseExpiry(modelId: number | string, userAddress: string) {
-    let provider: any
-    if (RPC_URL) {
-        try { provider = new (ethers as any).JsonRpcProvider(RPC_URL) } catch (e) { provider = null }
-    }
-    if (!provider && typeof window !== 'undefined' && (window as any).ethereum) {
-        provider = new (ethers as any).BrowserProvider((window as any).ethereum)
-    }
+    const provider = getReadProvider()
     if (!provider) throw new Error('No hay proveedor RPC disponible')
-
-    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, provider)
+    const contract = getContractWith(provider)
     if (typeof (contract as any).getLicenseExpiry !== 'function') {
         throw new Error('La función getLicenseExpiry no está disponible en el contrato.')
     }
@@ -251,19 +283,9 @@ export async function getPendingWithdrawal(userAddress: string) {
     if (!userAddress) throw new Error('userAddress is required')
 
     // elegir provider: prioridad a RPC_URL (lecturas públicas), sino MetaMask
-    let provider: any
-    if (RPC_URL) {
-        try { provider = new (ethers as any).JsonRpcProvider(RPC_URL) } catch (e) { provider = null }
-    }
-    if (!provider) {
-        if (typeof window !== 'undefined' && (window as any).ethereum) {
-            provider = new (ethers as any).BrowserProvider((window as any).ethereum)
-        } else {
-            throw new Error('No hay proveedor RPC disponible (define VITE_RPC_URL o conecta MetaMask)')
-        }
-    }
-
-    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, provider)
+    const provider = getReadProvider()
+    if (!provider) throw new Error('No hay proveedor RPC disponible (define VITE_RPC_URL o conecta MetaMask)')
+    const contract = getContractWith(provider)
     if (typeof (contract as any).pendingWithdrawals !== 'function') {
         throw new Error('El getter pendingWithdrawals no está disponible en el contrato. Revisa tu ABI.')
     }
@@ -272,7 +294,7 @@ export async function getPendingWithdrawal(userAddress: string) {
         const raw: any = await (contract as any).pendingWithdrawals(userAddress)
         const wei = raw ? ((raw as any).toString ? (raw as any).toString() : String(raw)) : '0'
         let readable: string | null = null
-        try { readable = (ethers as any).formatEther(raw) } catch (e) { readable = null }
+    readable = formatWei(raw)
         return { wei, readable }
     } catch (e) {
         console.error('Error en getPendingWithdrawal:', e)
@@ -291,23 +313,9 @@ export async function getModels(modelIds: Array<number | string>) {
     if (!modelIds || modelIds.length === 0) return [];
 
     // elegir provider: prioridad a RPC_URL (lecturas públicas), sino MetaMask
-    let provider: any;
-    if (RPC_URL) {
-        try {
-            provider = new (ethers as any).JsonRpcProvider(RPC_URL);
-        } catch (err) {
-            console.warn('No se pudo crear JsonRpcProvider, usaremos window.ethereum si está disponible', err);
-        }
-    }
-    if (!provider) {
-        if (typeof window !== 'undefined' && (window as any).ethereum) {
-            provider = new (ethers as any).BrowserProvider((window as any).ethereum);
-        } else {
-            throw new Error('No hay proveedor RPC disponible (define VITE_RPC_URL o conecta MetaMask)');
-        }
-    }
-
-    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, provider);
+    const provider = getReadProvider()
+    if (!provider) throw new Error('No hay proveedor RPC disponible (define VITE_RPC_URL o conecta MetaMask)')
+    const contract = getContractWith(provider)
 
     // Llamada al contrato: getModelsInfo devuelve arrays paralelos
     const raw = await (contract as any).getModelsInfo(modelIds);
@@ -315,32 +323,19 @@ export async function getModels(modelIds: Array<number | string>) {
     // Esperamos la forma: [ids, authors, names, forSaleStatuses, salePrices]
     const [ids, authors, names, forSaleStatuses, salePrices] = raw;
 
-    const toStr = (v: any) => {
-        if (v === null || v === undefined) return null;
-        try {
-            if (typeof v === 'bigint') return v.toString();
-            if (v._hex) return (v as any).toString();
-            return String(v);
-        } catch (e) { return String(v); }
-    };
+    const toStrLocal = toStr
 
     const result = (ids || []).map((id: any, i: number) => {
         const salePriceWei = salePrices?.[i] ?? null
         let salePriceReadable: string | null = null
-        try {
-            if (salePriceWei != null) {
-                salePriceReadable = (ethers as any).formatEther(salePriceWei)
-            }
-        } catch (e) {
-            salePriceReadable = null
-        }
+        salePriceReadable = formatWei(salePriceWei)
 
         return {
-            id: toStr(id),
+            id: toStrLocal(id),
             author: authors?.[i] ?? null,
             name: names?.[i] ?? null,
             forSale: Boolean(forSaleStatuses?.[i]),
-            salePriceWei: toStr(salePriceWei),
+            salePriceWei: toStrLocal(salePriceWei),
             salePrice: salePriceReadable
         }
     });
@@ -353,24 +348,10 @@ export async function getModels(modelIds: Array<number | string>) {
  * Retorna un array con todos los modelIds desde el contrato (getAllModelIds)
  */
 export async function getAllModelIds() {
-    // provider: usar RPC_URL si está disponible para lecturas
-    let provider: any
-    if (RPC_URL) {
-        try {
-            provider = new (ethers as any).JsonRpcProvider(RPC_URL)
-        } catch (err) {
-            console.warn('Error creando JsonRpcProvider, fallback a window.ethereum', err)
-        }
-    }
-    if (!provider) {
-        if (typeof window !== 'undefined' && (window as any).ethereum) {
-            provider = new (ethers as any).BrowserProvider((window as any).ethereum)
-        } else {
-            throw new Error('No hay proveedor RPC disponible (define VITE_RPC_URL o conecta MetaMask)')
-        }
-    }
-    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, provider)
-    
+    const provider = getReadProvider()
+    if (!provider) throw new Error('No hay proveedor RPC disponible (define VITE_RPC_URL o conecta MetaMask)')
+    const contract = getContractWith(provider)
+
     const raw: any = await (contract as any).getAllModelIds()
     // raw expected to be array of BigNumbers
     return (raw || []).map((v: any) => {
@@ -387,24 +368,10 @@ export async function getAllModelIds() {
 export async function getModelById(modelId: number | string) {
     if (modelId === null || modelId === undefined) throw new Error('modelId is required')
 
-    // provider: usar RPC_URL si está disponible para lecturas
-    let provider: any
-    if (RPC_URL) {
-        try {
-            provider = new (ethers as any).JsonRpcProvider(RPC_URL)
-        } catch (err) {
-            console.warn('Error creando JsonRpcProvider, fallback a window.ethereum', err)
-        }
-    }
-    if (!provider) {
-        if (typeof window !== 'undefined' && (window as any).ethereum) {
-            provider = new (ethers as any).BrowserProvider((window as any).ethereum)
-        } else {
-            throw new Error('No hay proveedor RPC disponible (define VITE_RPC_URL o conecta MetaMask)')
-        }
-    }
 
-    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, provider)
+    const provider = getReadProvider()
+    if (!provider) throw new Error('No hay proveedor RPC disponible (define VITE_RPC_URL o conecta MetaMask)')
+    const contract = getContractWith(provider)
 
     // Llamada principal
     const raw = await (contract as any).getModel(modelId)
@@ -447,8 +414,8 @@ export async function getModelById(modelId: number | string) {
 
     let basePriceReadable: string | null = null
     let salePriceReadable: string | null = null
-    try { if (basePriceWei != null) basePriceReadable = (ethers as any).formatEther(basePriceWei) } catch (e) { basePriceReadable = null }
-    try { if (salePriceWei != null) salePriceReadable = (ethers as any).formatEther(salePriceWei) } catch (e) { salePriceReadable = null }
+    basePriceReadable = formatWei(basePriceWei)
+    salePriceReadable = formatWei(salePriceWei)
 
     // Intentar obtener planes si la función existe
     let plans: any[] | null = null
@@ -459,7 +426,7 @@ export async function getModelById(modelId: number | string) {
             plans = (rawPlans || []).map((p: any) => {
                 const priceWei = p?.price ?? null
                 let priceReadable: string | null = null
-                try { if (priceWei != null) priceReadable = (ethers as any).formatEther(priceWei) } catch (e) { priceReadable = null }
+                priceReadable = formatWei(priceWei)
 
                 // duration del contrato viene en segundos; convertir a días para la UI
                 let durationDays: number | null = null
