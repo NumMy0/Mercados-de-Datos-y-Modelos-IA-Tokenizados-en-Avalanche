@@ -31,13 +31,13 @@ const truncateAddress = (address: string) => {
 
 <template>
   <nav class="bg-white border-b border-gray-200 app-dark:bg-gray-900 app-dark:border-gray-800 transition-colors duration-200">
-    <div class="min-w-full min-h-[10vh] flex justify-around p-4">
+    <div class="min-w-full min-h-[10vh] flex justify-around px-4 py-3">
       <!-- Logo -->
       <button 
         @click="navigateTo('/')" 
-        class="flex items-center space-x-3 cursor-pointer"
+        class="flex items-center cursor-pointer"
       >
-        <span class="p-3 text-xl font-semibold whitespace-nowrap app-dark:text-white transition-colors duration-200">
+        <span class="text-xl font-semibold whitespace-nowrap app-dark:text-white transition-colors duration-200">
           Data & AI Models Marketplace
         </span>
       </button>
@@ -100,13 +100,13 @@ const truncateAddress = (address: string) => {
             <button
               v-if="!isConnected"
               @click="handleConnectWallet"
-              class="block w-full h-[40px] md:w-auto text-white bg-blue-500 rounded-lg hover:bg-blue-600 app-dark:bg-blue-600 app-dark:hover:bg-blue-700 transition-colors duration-200 text-center"
+              class="block w-full md:w-auto px-5 py-2.5 text-white bg-blue-500 rounded-lg hover:bg-blue-600 app-dark:bg-blue-600 app-dark:hover:bg-blue-700 transition-colors duration-200 text-center"
             >
               Conectar Wallet
             </button>
             <div
               v-else
-              class="flex items-center gap-2 px-4 py-2 bg-green-50 app-dark:bg-green-900/20 text-green-700 app-dark:text-green-400 rounded-lg border border-green-200 app-dark:border-green-800 transition-colors duration-200"
+              class="flex items-center gap-2 px-3 py-2 bg-green-50 app-dark:bg-green-900/20 text-green-700 app-dark:text-green-400 rounded-lg border border-green-200 app-dark:border-green-800 transition-colors duration-200"
             >
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <circle cx="10" cy="10" r="3"/>

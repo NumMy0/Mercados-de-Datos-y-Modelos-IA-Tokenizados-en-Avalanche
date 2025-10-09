@@ -32,7 +32,7 @@ const emit = defineEmits<{
       
       <div class="flex flex-col gap-2 items-end">
         <span 
-          class="px-2 py-1 text-xs font-semibold rounded whitespace-nowrap"
+          class="px-2.5 py-1 text-xs font-semibold rounded whitespace-nowrap"
           :class="plan.active 
             ? 'bg-green-100 app-dark:bg-green-900/20 text-green-800 app-dark:text-green-400' 
             : 'bg-gray-100 app-dark:bg-gray-800 text-gray-800 app-dark:text-gray-400'"

@@ -58,13 +58,13 @@ const handleClose = () => {
       <!-- Modal Content -->
       <div class="w-full max-w-2xl bg-white app-dark:bg-gray-900 rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto">
         <!-- Modal Header -->
-        <div class="sticky top-0 bg-white app-dark:bg-gray-900 border-b border-gray-200 app-dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+        <div class="sticky top-0 bg-white app-dark:bg-gray-900 border-b border-gray-200 app-dark:border-gray-700 px-6 py-3.5 flex justify-between items-center">
           <h2 class="text-gray-900 app-dark:text-white font-bold text-2xl">
             Subir Modelo de IA
           </h2>
           <button 
             @click="handleClose"
-            class="text-gray-500 hover:text-gray-700 app-dark:text-gray-400 app-dark:hover:text-gray-200 transition-colors"
+            class="text-gray-500 hover:text-gray-700 app-dark:text-gray-400 app-dark:hover:text-gray-200 transition-colors p-1"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -73,7 +73,7 @@ const handleClose = () => {
         </div>
 
         <!-- Modal Body -->
-        <div class="p-6">
+        <div class="p-5">
           <form @submit.prevent="handleSubmit" class="space-y-4">
             <!-- Title -->
             <div>
@@ -172,17 +172,17 @@ const handleClose = () => {
             </div>
 
             <!-- Submit Buttons -->
-            <div class="flex justify-end gap-3 pt-4">
+            <div class="flex justify-end gap-3 pt-4 mt-2">
               <button 
                 @click="handleClose"
                 type="button"
-                class="px-6 py-2 bg-gray-200 app-dark:bg-gray-700 text-gray-900 app-dark:text-white rounded-md hover:bg-gray-300 app-dark:hover:bg-gray-600 transition-colors"
+                class="px-5 py-2.5 bg-gray-200 app-dark:bg-gray-700 text-gray-900 app-dark:text-white rounded-md hover:bg-gray-300 app-dark:hover:bg-gray-600 transition-colors"
               >
                 Cancelar
               </button>
               <button 
                 type="submit"
-                class="px-6 py-2 bg-green-500 app-dark:bg-green-600 text-white rounded-md hover:bg-green-600 app-dark:hover:bg-green-700 transition-colors"
+                class="px-5 py-2.5 bg-green-500 app-dark:bg-green-600 text-white rounded-md hover:bg-green-600 app-dark:hover:bg-green-700 transition-colors"
               >
                 Subir Modelo
               </button>
