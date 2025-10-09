@@ -78,6 +78,13 @@ const truncateAddress = (address: string) => {
             Datos
           </button>
           <button
+            v-if="isConnected"
+            @click="navigateTo('/profile')"
+            class="px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            Mi Perfil
+          </button>
+          <button
             @click="navigateTo('/about')"
             class="px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
           >
@@ -92,15 +99,16 @@ const truncateAddress = (address: string) => {
           >
             Conectar Wallet
           </button>
-          <div
+          <button
             v-else
-            class="flex items-center gap-2 px-3 py-2 bg-green-50 app-dark:bg-green-900/20 text-green-700 app-dark:text-green-400 rounded-lg border border-green-200 app-dark:border-green-800 transition-colors duration-200"
+            @click="navigateTo('/profile')"
+            class="flex items-center gap-2 px-3 py-2 bg-green-50 app-dark:bg-green-900/20 text-green-700 app-dark:text-green-400 rounded-lg border border-green-200 app-dark:border-green-800 hover:bg-green-100 app-dark:hover:bg-green-900/30 transition-colors duration-200 cursor-pointer"
           >
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <circle cx="10" cy="10" r="3"/>
             </svg>
             <span class="text-xs lg:text-sm font-medium">{{ truncateAddress(account!) }}</span>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -129,6 +137,13 @@ const truncateAddress = (address: string) => {
             Datos
           </button>
           <button
+            v-if="isConnected"
+            @click="navigateTo('/profile')"
+            class="block w-full text-left px-3 py-2 text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            Mi Perfil
+          </button>
+          <button
             @click="navigateTo('/about')"
             class="block w-full text-left px-3 py-2 text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
           >
@@ -144,15 +159,16 @@ const truncateAddress = (address: string) => {
             >
               Conectar Wallet
             </button>
-            <div
+            <button
               v-else
-              class="flex items-center justify-center gap-2 px-3 py-2 bg-green-50 app-dark:bg-green-900/20 text-green-700 app-dark:text-green-400 rounded-lg border border-green-200 app-dark:border-green-800 transition-colors duration-200"
+              @click="navigateTo('/profile')"
+              class="flex items-center justify-center gap-2 w-full px-3 py-2 bg-green-50 app-dark:bg-green-900/20 text-green-700 app-dark:text-green-400 rounded-lg border border-green-200 app-dark:border-green-800 hover:bg-green-100 app-dark:hover:bg-green-900/30 transition-colors duration-200 cursor-pointer"
             >
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <circle cx="10" cy="10" r="3"/>
               </svg>
               <span class="text-sm font-medium">{{ truncateAddress(account!) }}</span>
-            </div>
+            </button>
           </div>
         </div>
       </div>

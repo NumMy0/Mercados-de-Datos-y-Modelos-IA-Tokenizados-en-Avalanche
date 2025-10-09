@@ -23,7 +23,7 @@ Motor de inferencia de modelos de IA usando ONNX Runtime y Node.js + Express.
 ├───────────────┼───────────────────────┼─────────────────┤
 │               │   ImagePreprocessor   │  Postprocessor  │
 │   Cache LRU   │   TextPreprocessor    │  (Softmax, etc) │
-│               │                       │                  │
+│               │                       │                 │
 ├───────────────┴───────────────────────┴─────────────────┤
 │                  ONNX Runtime (CPU/GPU)                 │
 └─────────────────────────────────────────────────────────┘
