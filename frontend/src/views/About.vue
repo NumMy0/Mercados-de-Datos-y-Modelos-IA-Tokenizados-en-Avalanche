@@ -17,7 +17,6 @@ import {
   FileCode,
   ChevronDown,
   Github,
-  Heart
 } from 'lucide-vue-next'
 
 const router = useRouter()
