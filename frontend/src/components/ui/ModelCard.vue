@@ -23,29 +23,29 @@ const handleViewDetails = () => {
 
 <template>
   <div 
-    class="bg-white app-dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 overflow-hidden border border-gray-200 app-dark:border-gray-700 w-full max-w-full"
+    class="bg-white app-dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 overflow-hidden border border-gray-200 app-dark:border-gray-700 w-full"
   >
-    <div class="p-5 flex flex-col h-[280px]">
+    <div class="p-5 sm:p-6 flex flex-col h-[280px] sm:h-[320px]">
       <!-- Category Badge -->
-      <div class="mb-3">
-        <span class="inline-block px-3 py-1 text-xs font-semibold text-blue-600 app-dark:text-blue-400 bg-blue-50 app-dark:bg-blue-900/20 rounded-full border border-blue-200 app-dark:border-blue-800">
+      <div class="mb-2 sm:mb-3">
+        <span class="inline-block px-2.5 sm:px-3 py-0.5 sm:py-1 text-xs font-semibold text-blue-600 app-dark:text-blue-400 bg-blue-50 app-dark:bg-blue-900/20 rounded-full border border-blue-200 app-dark:border-blue-800">
           {{ model.category }}
         </span>
       </div>
 
       <!-- Model Name -->
-      <h3 class="text-xl font-bold text-gray-900 app-dark:text-gray-100 mb-3">
+      <h3 class="text-lg sm:text-xl font-bold text-gray-900 app-dark:text-gray-100 mb-2 sm:mb-3 line-clamp-2">
         {{ model.name }}
       </h3>
 
       <!-- Description -->
-      <p class="text-gray-600 app-dark:text-gray-400 text-sm line-clamp-2 mb-4 flex-grow">
+      <p class="text-gray-600 app-dark:text-gray-400 text-xs sm:text-sm line-clamp-2 mb-3 sm:mb-4 flex-grow">
         {{ model.description }}
       </p>
       
       <!-- Price -->
-      <div class="mb-4">
-        <span class="text-2xl font-bold text-gray-900 app-dark:text-gray-100">
+      <div class="mb-3 sm:mb-4">
+        <span class="text-xl sm:text-2xl font-bold text-gray-900 app-dark:text-gray-100">
           {{ model.price }}
         </span>
       </div>
@@ -53,10 +53,11 @@ const handleViewDetails = () => {
       <!-- Action Button -->
       <button 
         @click="handleViewDetails"
-        class="w-full py-2.5 px-4 bg-blue-500 app-dark:bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-600 app-dark:hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        class="w-full py-2 sm:py-2.5 px-4 text-sm sm:text-base bg-blue-500 app-dark:bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-600 app-dark:hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         :disabled="!isConnected"
       >
-        {{ isConnected ? 'Ver Detalles' : 'Conecta tu Wallet' }}
+        <span class="hidden sm:inline">{{ isConnected ? 'Ver Detalles' : 'Conecta tu Wallet' }}</span>
+        <span class="sm:hidden">{{ isConnected ? 'Detalles' : 'Conectar' }}</span>
       </button>
     </div>
   </div>
