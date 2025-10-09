@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { ethers } from 'ethers'
 import { useWallet } from '../composables/useWallet'
 import { useRouter } from 'vue-router'
 import Header from '../components/ui/header.vue'
 import ModelCard from '../components/ui/ModelCard.vue'
 import ModelDetailsModal from '../components/ModelDetailsModal.vue'
-import { getAllModelIds, getModelById } from '../composables/blockchain'
+import { getAllModelIds, getModelById , setModelForSale } from '../composables/blockchain'
 const { isConnected, account, connectWallet } = useWallet()
 
 const router = useRouter()
@@ -153,9 +154,55 @@ const handleBuyModel = () => {
   alert('Modelo comprado exitosamente!')
 }
 
-const handleSetForSale = (price: string) => {
-  console.log('setModelForSale:', { modelId: selectedModelId.value, price })
-  alert(`Modelo puesto en venta por ${price} AVAX`)
+const handleSetForSale = async (price: string) => {
+  try {
+    if (!selectedModelId.value) {
+      alert('No hay un modelo seleccionado')
+      return
+    }
+
+    // normalizar input (acepta '1.5' o '1.5 AVAX')
+    const raw = String(price || '').trim().replace(/\s*AVAX\s*/i, '')
+    if (!raw) {
+      alert('Precio inválido')
+      return
+    }
+
+    // convertir AVAX a wei usando ethers
+    let priceWei: any
+    try {
+      priceWei = ethers.parseEther(raw)
+    } catch (e) {
+      console.error('Error convirtiendo precio a wei:', e)
+      alert('Precio inválido. Usa un número como 1.5')
+      return
+    }
+
+    console.log('setModelForSale:', { modelId: selectedModelId.value, price, priceWei })
+
+    // Llamada on-chain
+    const receipt = await setModelForSale(Number(selectedModelId.value), priceWei)
+    console.log('Modelo puesto en venta, receipt:', receipt)
+
+    // Actualizar estado local optimista
+    const idx = userModels.value.findIndex(m => String(m.id) === String(selectedModelId.value))
+    if (idx !== -1) {
+      // actualizar flags
+      userModels.value[idx].forSale = true
+      // formatear precio legible
+      try {
+        userModels.value[idx].price = `${ethers.formatEther(priceWei)} AVAX`
+      } catch (e) {
+        // fallback
+        userModels.value[idx].price = `${raw} AVAX`
+      }
+    }
+
+    alert(`Modelo puesto en venta por ${raw} AVAX`)
+  } catch (err) {
+    console.error('Error en handleSetForSale:', err)
+    alert('Error al poner el modelo en venta. Revisa la consola.')
+  }
 }
 
 const handleCancelSale = () => {

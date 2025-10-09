@@ -93,6 +93,28 @@ export async function createLicensePlan(modelId: number | string, name: string, 
 }
 
 /**
+ * setModelForSale
+ * Marca un modelo como disponible para la venta y establece su precio (solo owner puede llamar).
+ * @param modelId id del modelo
+ * @param priceWei precio en wei (string|number|bigint)
+ */
+export async function setModelForSale(modelId: number | string, priceWei: string | number | bigint) {
+    if (!window.ethereum) throw new Error('MetaMask no detectado')
+
+    const provider = new (ethers as any).BrowserProvider((window as any).ethereum)
+    const signer = await provider.getSigner()
+    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, signer)
+
+    if (typeof (contract as any).setModelForSale !== 'function') {
+        throw new Error('La función setModelForSale no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
+    }
+
+    const tx = await (contract as any).setModelForSale(modelId, priceWei)
+    const receipt = await tx.wait()
+    return receipt
+}
+
+/**
  * hasActiveLicense
  * Consulta si un usuario tiene licencia activa para un modelo.
  * @param modelId id del modelo
@@ -391,6 +413,7 @@ export async function getModelById(modelId: number | string) {
         plans
     }
 }
+
 
 
 
