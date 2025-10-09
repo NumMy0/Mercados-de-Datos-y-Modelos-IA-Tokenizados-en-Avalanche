@@ -159,6 +159,27 @@ export async function cancelSale(modelId: number | string) {
 }
 
 /**
+ * withdraw
+ * Llama a la función on-chain `withdraw()` para que el caller retire su balance pendiente.
+ * @returns TransactionReceipt
+ */
+export async function withdraw() {
+    if (!window.ethereum) throw new Error('MetaMask no detectado')
+
+    const provider = new (ethers as any).BrowserProvider((window as any).ethereum)
+    const signer = await provider.getSigner()
+    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, signer)
+
+    if (typeof (contract as any).withdraw !== 'function') {
+        throw new Error('La función withdraw no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
+    }
+
+    const tx = await (contract as any).withdraw()
+    const receipt = await tx.wait()
+    return receipt
+}
+
+/**
  * hasActiveLicense
  * Consulta si un usuario tiene licencia activa para un modelo.
  * @param modelId id del modelo
