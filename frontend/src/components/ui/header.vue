@@ -31,90 +31,130 @@ const truncateAddress = (address: string) => {
 
 <template>
   <nav class="bg-white border-b border-gray-200 app-dark:bg-gray-900 app-dark:border-gray-800 transition-colors duration-200">
-    <div class="min-w-full min-h-[10vh] flex justify-around px-4 py-3">
-      <!-- Logo -->
-      <button 
-        @click="navigateTo('/')" 
-        class="flex items-center cursor-pointer"
-      >
-        <span class="text-xl font-semibold whitespace-nowrap app-dark:text-white transition-colors duration-200">
-          Data & AI Models Marketplace
-        </span>
-      </button>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <!-- Logo -->
+        <button 
+          @click="navigateTo('/')" 
+          class="flex items-center cursor-pointer flex-shrink-0"
+        >
+          <span class="text-lg md:text-xl font-semibold app-dark:text-white transition-colors duration-200">
+            <span class="hidden sm:inline">Data & AI Models Marketplace</span>
+            <span class="sm:hidden">AI Marketplace</span>
+          </span>
+        </button>
 
-      <!-- Mobile menu button -->
-      <button 
-        @click="toggleMenu"
-        type="button" 
-        class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 app-dark:text-gray-400 app-dark:hover:bg-gray-700 app-dark:focus:ring-gray-600 transition-colors duration-200" 
-        :aria-expanded="isMenuOpen"
-      >
-        <span class="sr-only">Open main menu</span>
-        <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
-          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1h15M1 7h15M1 13h15"/>
-        </svg>
-      </button>
+        <!-- Mobile menu button -->
+        <button 
+          @click="toggleMenu"
+          type="button" 
+          class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 app-dark:text-gray-400 app-dark:hover:bg-gray-700 app-dark:focus:ring-gray-600 transition-colors duration-200" 
+          :aria-expanded="isMenuOpen"
+        >
+          <span class="sr-only">Open main menu</span>
+          <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1h15M1 7h15M1 13h15"/>
+          </svg>
+        </button>
 
-      <!-- Navigation Menu -->
+        <!-- Desktop Navigation Menu -->
+        <div class="hidden md:flex md:items-center md:space-x-4 lg:space-x-6">
+          <button
+            @click="navigateTo('/')"
+            class="px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            Inicio
+          </button>
+          <button
+            @click="navigateTo('/models')"
+            class="px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            Modelos
+          </button>
+          <button
+            @click="navigateTo('/data')"
+            class="px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            Datos
+          </button>
+          <button
+            @click="navigateTo('/about')"
+            class="px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            Acerca de
+          </button>
+
+          <!-- Wallet Connection Desktop -->
+          <button
+            v-if="!isConnected"
+            @click="handleConnectWallet"
+            class="px-4 lg:px-5 py-2 text-sm lg:text-base text-white bg-blue-500 rounded-lg hover:bg-blue-600 app-dark:bg-blue-600 app-dark:hover:bg-blue-700 transition-colors duration-200 whitespace-nowrap"
+          >
+            Conectar Wallet
+          </button>
+          <div
+            v-else
+            class="flex items-center gap-2 px-3 py-2 bg-green-50 app-dark:bg-green-900/20 text-green-700 app-dark:text-green-400 rounded-lg border border-green-200 app-dark:border-green-800 transition-colors duration-200"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <circle cx="10" cy="10" r="3"/>
+            </svg>
+            <span class="text-xs lg:text-sm font-medium">{{ truncateAddress(account!) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Navigation Menu -->
       <div 
         :class="{ 'hidden': !isMenuOpen }" 
-        class="w-full md:flex md:w-auto md:items-center" 
-        id="navbar-default"
+        class="md:hidden border-t border-gray-200 app-dark:border-gray-700"
       >
-        <ul class="font-medium h-full flex flex-col md:flex-row md:space-x-8 mt-4 md:mt-0 md:items-center gap-4">
-          <li>
-            <button
-              @click="navigateTo('/')"
-              class="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 app-dark:text-white md:app-dark:hover:text-blue-500 app-dark:hover:bg-gray-700 app-dark:hover:text-white md:app-dark:hover:bg-transparent transition-colors duration-200"
-            >
-              Inicio
-            </button>
-          </li>
-          <li>
-            <button
-              @click="navigateTo('/models')"
-              class="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 app-dark:text-white md:app-dark:hover:text-blue-500 app-dark:hover:bg-gray-700 app-dark:hover:text-white md:app-dark:hover:bg-transparent transition-colors duration-200"
-            >
-              Modelos
-            </button>
-          </li>
-          <li>
-            <button
-              @click="navigateTo('/data')"
-              class="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 app-dark:text-white md:app-dark:hover:text-blue-500 app-dark:hover:bg-gray-700 app-dark:hover:text-white md:app-dark:hover:bg-transparent transition-colors duration-200"
-            >
-              Datos
-            </button>
-          </li>
-          <li>
-            <button
-              @click="navigateTo('/about')"
-              class="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 app-dark:text-white md:app-dark:hover:text-blue-500 app-dark:hover:bg-gray-700 app-dark:hover:text-white md:app-dark:hover:bg-transparent transition-colors duration-200"
-            >
-              Acerca de
-            </button>
-          </li>
+        <div class="px-2 pt-2 pb-3 space-y-1">
+          <button
+            @click="navigateTo('/')"
+            class="block w-full text-left px-3 py-2 text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            Inicio
+          </button>
+          <button
+            @click="navigateTo('/models')"
+            class="block w-full text-left px-3 py-2 text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            Modelos
+          </button>
+          <button
+            @click="navigateTo('/data')"
+            class="block w-full text-left px-3 py-2 text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            Datos
+          </button>
+          <button
+            @click="navigateTo('/about')"
+            class="block w-full text-left px-3 py-2 text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            Acerca de
+          </button>
 
-          <!-- Wallet Connection -->
-          <li class="mt-2 md:mt-0">
+          <!-- Wallet Connection Mobile -->
+          <div class="pt-2">
             <button
               v-if="!isConnected"
               @click="handleConnectWallet"
-              class="block w-full md:w-auto px-5 py-2.5 text-white bg-blue-500 rounded-lg hover:bg-blue-600 app-dark:bg-blue-600 app-dark:hover:bg-blue-700 transition-colors duration-200 text-center"
+              class="block w-full px-3 py-2.5 text-center text-white bg-blue-500 rounded-lg hover:bg-blue-600 app-dark:bg-blue-600 app-dark:hover:bg-blue-700 transition-colors duration-200"
             >
               Conectar Wallet
             </button>
             <div
               v-else
-              class="flex items-center gap-2 px-3 py-2 bg-green-50 app-dark:bg-green-900/20 text-green-700 app-dark:text-green-400 rounded-lg border border-green-200 app-dark:border-green-800 transition-colors duration-200"
+              class="flex items-center justify-center gap-2 px-3 py-2 bg-green-50 app-dark:bg-green-900/20 text-green-700 app-dark:text-green-400 rounded-lg border border-green-200 app-dark:border-green-800 transition-colors duration-200"
             >
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <circle cx="10" cy="10" r="3"/>
               </svg>
               <span class="text-sm font-medium">{{ truncateAddress(account!) }}</span>
             </div>
-          </li>
-        </ul>
+          </div>
+        </div>
       </div>
     </div>
   </nav>
