@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { uploadModelBlockchain , uploadToIPFS } from '../composables/blockchain';
+import { uploadModelBlockchain , uploadToIPFS, unpinFromIPFS } from '../composables/blockchain';
 import { parseEther } from 'ethers'
 
 const props = defineProps<{
@@ -89,14 +89,34 @@ const handleSubmit = async () => {
     return
   }
 
-  await uploadModelBlockchain(
-    formData.value.title,
-    modelIPFSHash,
-    priceWei,
-    metadataIPFSHash,
-  )
+  try {
+    await uploadModelBlockchain(
+      formData.value.title,
+      modelIPFSHash,
+      priceWei,
+      metadataIPFSHash,
+    )
 
-  resetForm()
+    resetForm()
+  } catch (err) {
+    // Si la tx falla, deshacer los pins en Pinata para evitar residuos
+    console.error('Error subiendo modelo a la blockchain:', err)
+    try {
+      await unpinFromIPFS(modelIPFSHash)
+      console.info('Modelo unpinned:', modelIPFSHash)
+    } catch (uerr) {
+      console.warn('No se pudo unpin el archivo del modelo:', uerr)
+    }
+    try {
+      await unpinFromIPFS(metadataIPFSHash)
+      console.info('Metadata unpinned:', metadataIPFSHash)
+    } catch (uerr) {
+      console.warn('No se pudo unpin los metadatos:', uerr)
+    }
+
+    alert(`Error al subir el modelo a la blockchain: ${String(err)}. Los archivos en IPFS fueron removidos (o el intento falló).`)
+    return
+  }
 }
 
 const resetForm = () => {
