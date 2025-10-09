@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useWallet } from '../composables/useWallet'
 import { useRouter } from 'vue-router'
 import Header from '../components/ui/header.vue'
 import ModelCard from '../components/ui/ModelCard.vue'
 import UploadModelModal from '../components/UploadModelModal.vue'
 import ModelDetailsModal from '../components/ModelDetailsModal.vue'
+import { getAllModelIds, getModelById } from '../composables/blockchain'
 
 const { isConnected, connectWallet, account } = useWallet()
 const router = useRouter()
@@ -13,15 +14,25 @@ const isUploadModalOpen = ref(false)
 const isDetailsModalOpen = ref(false)
 const selectedModelId = ref<number | null>(null)
 
-const models = ref([
-  {
-    id: 1,
-    name: 'GPT-Style Language Model',
-    description: 'Modelo de lenguaje avanzado para procesamiento de texto',
-    price: '100 AVAX',
-    category: 'NLP'
-  },
-])
+const models = ref<any[]>([])
+const loadingModels = ref(false)
+
+onMounted(async () => {
+  loadingModels.value = true
+  try {
+    const ids = await getAllModelIds()
+    if (ids && ids.length) {
+      const fetched = await Promise.all(ids.map((id: any) => getModelById(id)))
+      models.value = fetched
+    }
+  } catch (err) {
+    console.error('Error cargando modelos desde la blockchain:', err)
+  } finally {
+    loadingModels.value = false
+  }
+
+  console.log('Modelos cargados:', models.value)
+})
 
 const handleConnectWallet = async () => {
   try {
@@ -42,6 +53,7 @@ const handleCloseModal = () => {
   isUploadModalOpen.value = false
 }
 
+// se tiene que cambiar para que se active cuando se suba el modelo a la BLOCKCHAIN
 const handleSubmitModel = (formData: any) => {
   console.log('Modelo a subir:', formData)
   isUploadModalOpen.value = false
@@ -55,8 +67,8 @@ const handleSubmitModel = (formData: any) => {
   }
   models.value.push(newModel)
   
-  alert('Modelo subido exitosamente!')
 }
+
 
 const handleViewDetails = (modelId: number) => {
   selectedModelId.value = modelId
