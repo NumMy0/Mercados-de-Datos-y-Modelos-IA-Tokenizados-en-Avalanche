@@ -1,0 +1,57 @@
+# Archivo de configuración de Git para ignorar archivos y directorios no deseados.
+# Ver: https://git-scm.com/docs/gitignore
+
+# 1. Dependencias y paquetes
+# La carpeta node_modules contiene todas las dependencias y puede ser muy pesada.
+# Siempre debe regenerarse ejecutando 'npm install' o 'yarn install'.
+/node_modules
+
+# 2. Archivos de entorno (.env)
+# Estos archivos contienen secretos, claves de API y otra información sensible.
+# Es una mala práctica de seguridad subirlos al repositorio.
+# Se debe subir un archivo de ejemplo como '.env.example'.
+.env
+.env.local
+.env.*.local
+
+# 3. Modelos de Machine Learning y Datos Pesados
+# Los modelos (.onnx) pueden ser archivos binarios muy grandes.
+# Subirlos directamente a Git puede hacer que el repositorio sea extremadamente lento.
+# Es mejor gestionarlos con Git LFS (Large File Storage) o descargarlos desde un servicio de almacenamiento.
+models/*.onnx
+models/**/*.onnx
+
+# Descomenta la siguiente línea si tienes otros datos grandes que no deben estar en el repo.
+# data/
+
+# 4. Logs y reportes
+# Archivos de registro generados durante la ejecución o para depuración.
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 5. Archivos de compilación y salida (Build)
+# Directorios donde se guardan los archivos transpilados o empaquetados para producción.
+/dist
+/build
+/out
+
+# 6. Reportes de pruebas y cobertura de código
+coverage
+.nyc_output
+
+# 7. Archivos de sistema operativo
+# Archivos autogenerados por los sistemas operativos que no aportan al proyecto.
+.DS_Store
+Thumbs.db
+._*
+
+# 8. Archivos de configuración de editores de código
+# Para evitar conflictos con las preferencias personales de cada desarrollador.
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
