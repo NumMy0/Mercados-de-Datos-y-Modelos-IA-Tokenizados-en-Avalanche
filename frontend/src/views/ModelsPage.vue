@@ -23,7 +23,14 @@ onMounted(async () => {
     const ids = await getAllModelIds()
     if (ids && ids.length) {
       const fetched = await Promise.all(ids.map((id: any) => getModelById(id)))
-      models.value = fetched
+      // Transformar los datos de la blockchain al formato esperado
+      models.value = fetched.map(model => ({
+        id: model.id,
+        name: model.name || model.modelName || `Model #${model.id}`,
+        description: model.description || model.modelDescription || 'Sin descripción',
+        price: model.price ? `${model.price} AVAX` : 'No disponible',
+        category: model.category || model.modelCategory || 'General'
+      }))
     }
   } catch (err) {
     console.error('Error cargando modelos desde la blockchain:', err)
@@ -31,16 +38,9 @@ onMounted(async () => {
     loadingModels.value = false
   }
 
-  console.log('Modelos cargados:', models.value)
+  console.log('Modelos transformados:', models.value)
 })
 
-const handleConnectWallet = async () => {
-  try {
-    await connectWallet()
-  } catch (err) {
-    console.error('Error al conectar:', err)
-  }
-}
 
 const handleUploadModel = () => {
   if (!isConnected.value) {

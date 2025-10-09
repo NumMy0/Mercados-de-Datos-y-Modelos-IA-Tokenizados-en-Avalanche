@@ -249,6 +249,15 @@ watch(() => props.isOpen, (isOpen) => {
     activeTab.value = 'details'
   }
 })
+
+// Cargar datos inmediantamente si el modal ya está abierto
+watch(() => props.modelId, (newId) => {
+  if (props.isOpen && newId !== null) {
+    loadModelData()
+  }
+}, { immediate: true }
+)
+
 </script>
 
 <template>
