@@ -1,9 +1,19 @@
+// src/server.js (AJUSTADO)
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const inferenceRoutes = require('./routes/inference.routes');
+
+// Importar el módulo de rutas de inferencia para obtener el router Y el modelLoader
+const inferenceModule = require('./routes/inference.routes');
+const inferenceRoutes = inferenceModule.router; // El router de inferencia
+// const modelLoader = inferenceModule.modelLoader; // La instancia del loader (no se usa directamente aquí, pero se exporta)
+
+// Importar el nuevo módulo de rutas de IPFS y caché
+const modelRoutes = require('./routes/model.routes');
+
 const logger = require('./utils/logger');
 const config = require('./config/config');
 
@@ -47,8 +57,12 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Rutas de inferencia
+// Rutas de inferencia (Existente)
 app.use('/api/inference', inferenceRoutes);
+
+// Rutas de IPFS y Caché (NUEVAS)
+app.use('/api/models', modelRoutes);
+app.use('/api/cache', modelRoutes); // Alias para rutas de caché
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {
@@ -90,7 +104,8 @@ async function gracefulShutdown() {
 
   // Limpiar recursos (modelos en memoria, etc.)
   try {
-    // Aquí se limpiarían los modelos cargados
+    // Aquí se limpia la caché antes de salir (asumiendo que modelLoader tiene el método clearCache)
+    // require('./routes/inference.routes').modelLoader.clearCache();
     logger.info('Resources cleaned up');
     process.exit(0);
   } catch (error) {
