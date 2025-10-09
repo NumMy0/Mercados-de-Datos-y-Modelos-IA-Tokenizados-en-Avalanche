@@ -90,26 +90,7 @@ const loadUserLicenses = async () => {
     // TODO: Implementar función para obtener licencias del usuario desde blockchain
     // Simulación temporal
     userLicenses.value = [
-      {
-        id: 1,
-        modelId: 1,
-        modelName: 'ResNet-50 Classification',
-        planName: 'Plan Básico',
-        expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        isActive: true,
-        usageCount: 1250,
-        usageLimit: 5000
-      },
-      {
-        id: 2,
-        modelId: 3,
-        modelName: 'GPT-2 Text Generator',
-        planName: 'Plan Premium',
-        expiryDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        isActive: true,
-        usageCount: 340,
-        usageLimit: 10000
-      }
+
     ]
   } catch (err) {
     console.error('Error cargando licencias:', err)
