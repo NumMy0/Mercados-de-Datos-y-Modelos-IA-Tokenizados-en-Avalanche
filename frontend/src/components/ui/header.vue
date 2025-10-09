@@ -31,13 +31,13 @@ const truncateAddress = (address: string) => {
 
 <template>
   <nav class="bg-white border-b border-gray-200 app-dark:bg-gray-900 app-dark:border-gray-800 transition-colors duration-200">
-    <div class="min-w-full min-h-[10vh] flex justify-around px-4 py-3">
+    <div class="min-w-full min-h-[10vh] flex justify-between px-4 py-3">
       <!-- Logo -->
       <button 
         @click="navigateTo('/')" 
         class="flex items-center cursor-pointer"
       >
-        <span class="text-xl font-semibold whitespace-nowrap app-dark:text-white transition-colors duration-200">
+        <span class="text-xl font-semibold whitespace-nowrap app-dark:text-white transition-colors duration-200 p-4">
           Data & AI Models Marketplace
         </span>
       </button>
