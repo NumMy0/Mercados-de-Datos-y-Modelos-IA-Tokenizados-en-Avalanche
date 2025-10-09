@@ -25,6 +25,23 @@ const selectedModel = computed(() => {
   return models.value.find(m => m.id === selectedModelId.value) || null
 })
 
+// Computed para filtrar modelos que NO son del usuario
+const filteredModels = computed(() => {
+  if (!account.value) return models.value
+  
+  return models.value.filter(model => {
+    const ownerAddr = model.author || model.owner
+    if (!ownerAddr) return true // Si no tiene owner, mostrarlo por defecto
+    
+    try {
+      // Excluir modelos donde el usuario conectado es el propietario
+      return ownerAddr.toLowerCase() !== account.value!.toLowerCase()
+    } catch (e) {
+      return true // En caso de error, mostrar el modelo
+    }
+  })
+})
+
 onMounted(async () => {
   loadingModels.value = true
   try {
@@ -69,6 +86,7 @@ onMounted(async () => {
         return {
           id: m.id,
           author: m.author,
+          owner: m.owner,
           name: displayName,
           description,
           price: priceText,
@@ -94,6 +112,7 @@ onMounted(async () => {
   }
 
   console.log('Modelos transformados:', models.value)
+  console.log('Modelos filtrados sin los del usuario:', models.value.filter(m => m.owner !== account.value))
 })
 
 
@@ -290,9 +309,9 @@ const handleTransferModel = (toAddress: string) => {
         </div>
 
         <!-- Models Grid -->
-        <div v-else-if="!loadingModels && models.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 pb-8">
+        <div v-else-if="!loadingModels && filteredModels.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 pb-8">
           <ModelCard
-            v-for="model in models"
+            v-for="model in filteredModels"
             :key="model.id"
             :model="model"
             :is-connected="isConnected"
@@ -311,10 +330,14 @@ const handleTransferModel = (toAddress: string) => {
             </svg>
           </div>
           <h3 class="text-xl sm:text-2xl font-bold text-gray-900 app-dark:text-gray-100 mb-3">
-            No hay modelos disponibles
+            {{ isConnected && models.length > 0
+             ? 'No hay modelos disponibles' 
+             : 'No hay modelos subidos aún' }}
           </h3>
           <p class="text-gray-500 app-dark:text-gray-400 text-base sm:text-lg mb-6 max-w-md mx-auto">
-            Sé el primero en subir un modelo de IA al marketplace
+            {{ isConnected && models.length > 0 
+            ? 'Actualmente no hay modelos disponibles para comprar. Vuelve más tarde.' 
+            : 'Sé el primero en subir un modelo de IA al marketplace' }}
           </p>
           <button
             v-if="isConnected"
