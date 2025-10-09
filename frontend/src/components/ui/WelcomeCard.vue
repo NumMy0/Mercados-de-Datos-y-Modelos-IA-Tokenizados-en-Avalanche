@@ -28,7 +28,7 @@ const getButtonClasses = (variant: Button['variant'] = 'secondary') => {
 
 <template>
   <div class="w-full max-w-[55vh] min-h-[45vh] flex flex-col items-center justify-around rounded-[20px]
-         bg-white app-dark:bg-gray-800 text-center shadow-lg transition-colors duration-200">
+         bg-white app-dark:bg-gray-800 text-center shadow-lg transition-colors duration-200 p-8">
     <!-- Header -->
     <h3 class="text-gray-900 app-dark:text-gray-100 text-xl font-bold sm:text-3xl transition-colors duration-200">
       {{ title }}
@@ -37,7 +37,7 @@ const getButtonClasses = (variant: Button['variant'] = 'secondary') => {
     
     <!-- Description -->
     <div class="w-[70%]">
-        <p class="text-gray-500 app-dark:text-gray-400 mb-10 text-base leading-relaxed transition-colors duration-200 px-4">
+        <p class="text-gray-500 app-dark:text-gray-400 text-base leading-relaxed transition-colors duration-200">
         {{ description }}
         </p>
     </div>
@@ -45,13 +45,13 @@ const getButtonClasses = (variant: Button['variant'] = 'secondary') => {
     <!-- Error Message -->
     <div 
       v-if="error" 
-      class="mb-6 p-2 bg-red-50 app-dark:bg-red-900/20 border border-red-200 app-dark:border-red-800 rounded-lg w-[40%]"
+      class="p-3 bg-red-50 app-dark:bg-red-900/20 border border-red-200 app-dark:border-red-800 rounded-lg w-full max-w-[80%]"
     >
       <p class="text-red-600 app-dark:text-red-400 text-sm">{{ error }}</p>
     </div>
 
     <!-- Action Buttons -->
-    <div class="flex flex-wrap justify-center gap-8 w-full min-h-[40px] px-4">
+    <div class="flex flex-wrap justify-center gap-4 w-full">
         <button
             v-for="(button, index) in buttons"
             :key="index"
@@ -59,7 +59,7 @@ const getButtonClasses = (variant: Button['variant'] = 'secondary') => {
             :disabled="button.disabled || button.loading"
             :class="[
             getButtonClasses(button.variant),
-            'flex-1 min-w-[150px] max-w-[200px] text-center py-3'
+            'flex-1 min-w-[150px] max-w-[200px] text-center py-2.5'
             ]"
         >
         {{ button.loading ? 'Cargando...' : button.label }}
