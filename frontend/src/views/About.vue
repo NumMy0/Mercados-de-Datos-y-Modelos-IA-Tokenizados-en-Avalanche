@@ -69,9 +69,15 @@ const team = [
   },
   {
     name: 'Juan Alejandro Salgado',
-    role: 'Python Developer',
+    role: 'Backend Developer',
     initials: 'JS',
     description: 'Desarrollador de soluciones IA y ML'
+  },
+  {
+    name: 'Valeria Roche Diago',
+    role: 'DevOps y QA',
+    initials: 'VR',
+    description: 'Experta en integración y despliegue continuo'
   }
 ]
 
