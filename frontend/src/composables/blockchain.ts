@@ -241,6 +241,45 @@ export async function getLicenseExpiry(modelId: number | string, userAddress: st
     }
 }
 
+/**
+ * getPendingWithdrawal
+ * Lee el mapping público `pendingWithdrawals(address)` del contrato y retorna el valor en wei y formateado.
+ * @param userAddress dirección del usuario
+ * @returns { wei: string, readable: string | null }
+ */
+export async function getPendingWithdrawal(userAddress: string) {
+    if (!userAddress) throw new Error('userAddress is required')
+
+    // elegir provider: prioridad a RPC_URL (lecturas públicas), sino MetaMask
+    let provider: any
+    if (RPC_URL) {
+        try { provider = new (ethers as any).JsonRpcProvider(RPC_URL) } catch (e) { provider = null }
+    }
+    if (!provider) {
+        if (typeof window !== 'undefined' && (window as any).ethereum) {
+            provider = new (ethers as any).BrowserProvider((window as any).ethereum)
+        } else {
+            throw new Error('No hay proveedor RPC disponible (define VITE_RPC_URL o conecta MetaMask)')
+        }
+    }
+
+    const contract = new (ethers as any).Contract(CONTRACT_ADDRESS, contractABI, provider)
+    if (typeof (contract as any).pendingWithdrawals !== 'function') {
+        throw new Error('El getter pendingWithdrawals no está disponible en el contrato. Revisa tu ABI.')
+    }
+
+    try {
+        const raw: any = await (contract as any).pendingWithdrawals(userAddress)
+        const wei = raw ? ((raw as any).toString ? (raw as any).toString() : String(raw)) : '0'
+        let readable: string | null = null
+        try { readable = (ethers as any).formatEther(raw) } catch (e) { readable = null }
+        return { wei, readable }
+    } catch (e) {
+        console.error('Error en getPendingWithdrawal:', e)
+        return { wei: '0', readable: '0' }
+    }
+}
+
 
 /**
  * getModels
