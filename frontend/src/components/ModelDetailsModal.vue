@@ -21,6 +21,8 @@ import SaleManagementTab from './tabs/SaleManagementTab.vue'
 import TransferTab from './tabs/TransferTab.vue'
 import { getModelById, createLicensePlan, cancelSale, setModelForSale, buyLicense } from '../composables/blockchain'
 import { fetchMetadata } from '../composables/ipfs'
+import { useNotifications } from '../composables/useNotifications'
+import { useBlockchainErrorHandler } from '../composables/useBlockchainErrorHandler'
 import { ethers } from 'ethers'
 
 // ========================================
@@ -96,6 +98,9 @@ const creatingPlan = ref(false)
 const settingForSale = ref(false)
 const cancellingSale = ref(false)
 const buyingLicense = ref(false)
+
+const { notifyTransactionSuccess, notifyError } = useNotifications()
+const { handleAsyncOperation } = useBlockchainErrorHandler()
 
 // ========================================
 // COMPUTED PROPERTIES
@@ -264,11 +269,20 @@ const handleCreateLicensePlan = async (formData: { name: string, price: string, 
     const receipt = await createLicensePlan(props.modelId, formData.name, priceWei, durationSeconds)
     console.log('License plan created on-chain:', receipt)
 
+    // Show success notification
+    notifyTransactionSuccess(
+      'Plan de Licencia Creado',
+      `El plan "${formData.name}" ha sido creado exitosamente por ${formData.price} AVAX`
+    )
+
     // Recargar datos del modelo
     await loadModelData()
   } catch (err: any) {
     console.error('Error creando plan en blockchain:', err)
-    alert('No se pudo crear el plan en la blockchain: ' + (err && err.message ? err.message : String(err)))
+    handleAsyncOperation(
+      () => Promise.reject(err),
+      'creación de plan de licencia'
+    )
   } finally {
     creatingPlan.value = false
   }
@@ -279,7 +293,7 @@ const handleBuyLicense = async (planId: number) => {
 
   const plan = licensePlans.value.find(p => p.id === planId)
   if (!plan) {
-    alert('Plan no encontrado')
+    notifyError('Plan no encontrado', 'No se pudo encontrar el plan de licencia seleccionado')
     return
   }
 
@@ -295,6 +309,12 @@ const handleBuyLicense = async (planId: number) => {
     const receipt = await buyLicense(props.modelId, planId, priceWei)
     console.log('buyLicense receipt:', receipt)
 
+    // Show success notification
+    notifyTransactionSuccess(
+      'Licencia Comprada',
+      `Has adquirido exitosamente el plan "${plan.name}" por ${plan.price} AVAX`
+    )
+
     // Actualizar estado local
     userHasLicense.value = true
     licenseExpiry.value = Math.floor(Date.now() / 1000) + 2592000
@@ -303,7 +323,10 @@ const handleBuyLicense = async (planId: number) => {
     emit('buyLicense', planId)
   } catch (err: any) {
     console.error('Error comprando licencia:', err)
-    alert('No se pudo comprar la licencia: ' + (err && err.message ? err.message : String(err)))
+    handleAsyncOperation(
+      () => Promise.reject(err),
+      'compra de licencia'
+    )
   } finally {
     buyingLicense.value = false
   }
@@ -330,6 +353,12 @@ const handleSetForSale = async (price: string) => {
     const receipt = await setModelForSale(props.modelId, priceWei)
     console.log('setModelForSale receipt:', receipt)
 
+    // Show success notification
+    notifyTransactionSuccess(
+      'Modelo Puesto en Venta',
+      `Tu modelo está ahora disponible por ${price} AVAX`
+    )
+
     // Emitir al padre
     emit('setForSale', price)
 
@@ -340,7 +369,10 @@ const handleSetForSale = async (price: string) => {
     }
   } catch (err) {
     console.error('Error poniendo modelo en venta:', err)
-    alert('Error poniendo el modelo en venta. Revisa la consola para más detalles.')
+    handleAsyncOperation(
+      () => Promise.reject(err),
+      'poner modelo en venta'
+    )
   } finally {
     settingForSale.value = false
   }
@@ -354,6 +386,12 @@ const handleCancelSale = async () => {
     const receipt = await cancelSale(props.modelId)
     console.log('cancelSale receipt:', receipt)
 
+    // Show success notification
+    notifyTransactionSuccess(
+      'Venta Cancelada',
+      'Tu modelo ya no está disponible para la venta'
+    )
+
     // Emitir al padre
     emit('cancelSale')
 
@@ -365,7 +403,10 @@ const handleCancelSale = async () => {
     }
   } catch (err) {
     console.error('Error cancelando venta on-chain:', err)
-    alert('Error cancelando la venta. Revisa la consola para más detalles.')
+    handleAsyncOperation(
+      () => Promise.reject(err),
+      'cancelar venta'
+    )
   } finally {
     cancellingSale.value = false
   }

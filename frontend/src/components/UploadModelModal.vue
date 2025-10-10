@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import { uploadModelBlockchain } from '../composables/blockchain';
 import { uploadToIPFS, unpinFromIPFS } from '../composables/ipfs';
+import { useNotifications } from '../composables/useNotifications'
+import { useBlockchainErrorHandler } from '../composables/useBlockchainErrorHandler'
 import { parseEther } from 'ethers'
 
 defineProps<{
@@ -31,6 +33,9 @@ const formData = ref({
 const selectedFile = ref<File | null>(null)
 const modelHash = ref<string>('')
 
+const { notifyError, notifyTransactionSuccess } = useNotifications()
+const { handleAsyncOperation } = useBlockchainErrorHandler()
+
 // handleFileChange is implemented below with hash computation
 
 // Compute SHA-256 hex digest of the uploaded file and store in modelHash
@@ -59,12 +64,12 @@ const handleFileChange = async (e: Event) => {
 const handleSubmit = async () => {
   // Validación básica
   if (!formData.value.title || !formData.value.description || !formData.value.price) {
-    alert('Por favor completa todos los campos obligatorios')
+    notifyError('Campos requeridos', 'Por favor completa todos los campos obligatorios')
     return
   }
 
   if (!selectedFile.value) {
-    alert('Por favor selecciona el archivo del modelo a subir')
+    notifyError('Archivo requerido', 'Por favor selecciona el archivo del modelo a subir')
     return
   }
 
@@ -75,12 +80,15 @@ const handleSubmit = async () => {
   try {
     modelIPFSHash = await uploadToIPFS(selectedFile.value as File)
   } catch (err) {
-    alert(`Error al subir el archivo del modelo a IPFS: ${String(err)}`)
+    handleAsyncOperation(
+      () => Promise.reject(err),
+      'subida del archivo del modelo a IPFS'
+    )
     return
   }
 
   if (!modelIPFSHash) {
-    alert('Error al subir el archivo del modelo a IPFS')
+    notifyError('Error en IPFS', 'Error al subir el archivo del modelo a IPFS')
     return
   }
 
@@ -91,7 +99,7 @@ const handleSubmit = async () => {
     try {
       inferenceConfig = JSON.parse(String(formData.value.inference_config_json))
     } catch (err) {
-      alert('El campo de configuración de inferencia contiene JSON inválido. Corrige antes de continuar.')
+      notifyError('JSON inválido', 'El campo de configuración de inferencia contiene JSON inválido. Corrige antes de continuar.')
       return
     }
   } else {
@@ -113,12 +121,15 @@ const handleSubmit = async () => {
     const blob = new Blob([JSON.stringify(metadata)], { type: 'application/json' })
     metadataIPFSHash = await uploadToIPFS(blob)
   } catch (err) {
-    alert(`Error al subir los metadatos a IPFS: ${String(err)}`)
+    handleAsyncOperation(
+      () => Promise.reject(err),
+      'subida de metadatos a IPFS'
+    )
     return
   }
 
   if (!metadataIPFSHash) {
-    alert('Error al subir los metadatos a IPFS')
+    notifyError('Error en IPFS', 'Error al subir los metadatos a IPFS')
     return
   }
 
@@ -128,7 +139,7 @@ const handleSubmit = async () => {
   try {
     priceWei = parseEther(String(formData.value.price))
   } catch (err) {
-    alert(`Precio inválido: ${String(err)}`)
+    notifyError('Precio inválido', `El precio ingresado no es válido: ${String(err)}`)
     return
   }
 
@@ -138,6 +149,11 @@ const handleSubmit = async () => {
       modelIPFSHash,
       priceWei,
       metadataIPFSHash,
+    )
+
+    notifyTransactionSuccess(
+      'Modelo Subido Exitosamente',
+      `Tu modelo "${formData.value.title}" ha sido subido a la blockchain por ${formData.value.price} AVAX`
     )
 
     resetForm()
@@ -157,7 +173,10 @@ const handleSubmit = async () => {
       console.warn('No se pudo unpin los metadatos:', uerr)
     }
 
-    alert(`Error al subir el modelo a la blockchain: ${String(err)}. Los archivos en IPFS fueron removidos (o el intento falló).`)
+    handleAsyncOperation(
+      () => Promise.reject(err),
+      'subida del modelo a la blockchain'
+    )
     return
   }
 }

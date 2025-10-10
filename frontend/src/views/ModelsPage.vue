@@ -21,11 +21,13 @@ import { ref, onMounted, computed } from 'vue'
 import { useWallet } from '../composables/useWallet'
 import { useModels } from '../composables/useModels'
 import { useModelActions } from '../composables/useModelActions'
+import { uploadModelBlockchain } from '../composables/blockchain'
 import Header from '../components/ui/header.vue'
 import ModelsGrid from '../components/ModelsGrid.vue'
 import UploadModelModal from '../components/UploadModelModal.vue'
 import ModelDetailsModal from '../components/ModelDetailsModal.vue'
 import BuyModelModal from '../components/BuyModelModal.vue'
+import { ethers } from 'ethers' 
 
 // ========================================
 // COMPOSABLES
@@ -39,8 +41,7 @@ const {
   filteredModels,
   loadModels,
   selectModel,
-  updateModel,
-  addModel 
+  updateModel
 } = useModels(account)
 
 const {
@@ -54,12 +55,13 @@ const {
 } = useModelActions()
 
 // ========================================
-// ESTADO DE MODALS
+// ESTADO DE MODALS Y LOADING
 // ========================================
 
 const isUploadModalOpen = ref(false)
 const isDetailsModalOpen = ref(false)
 const isBuyModalOpen = ref(false)
+const isUploadingModel = ref(false)
 
 // ========================================
 // CICLO DE VIDA
@@ -137,34 +139,44 @@ function handleViewDetails(modelId: number) {
 
 /**
  * Maneja la subida de un nuevo modelo
- * TODO: Conectar con blockchain real
+ * ✅ IMPLEMENTADO: Conecta con blockchain real usando uploadModelBlockchain()
  */
-function handleSubmitModel(formData: any) {
+async function handleSubmitModel(formData: any) {
   console.log('Modelo a subir:', formData)
   
-  // Cerrar modal
-  isUploadModalOpen.value = false
-  
-  // Agregar modelo temporal al estado local
-  // TODO: Esperar confirmación blockchain antes de agregar
-  const newModel = {
-    id: models.value.length + 1,
-    name: formData.title,
-    description: formData.description,
-    price: `${formData.price} AVAX`,
-    priceRaw: formData.price,
-    category: formData.category,
-    author: account.value || '',
-    owner: account.value || '',
-    ipfsHash: '',
-    tokenURI: '',
-    forSale: false,
-    salePriceRaw: null,
-    salePriceWei: null,
+  try {
+    // Cerrar modal y activar estado de loading
+    isUploadModalOpen.value = false
+    isUploadingModel.value = true
+    
+    // Convertir precio a wei
+    const priceInWei = ethers.parseEther(formData.price.toString())
+    
+    // ✅ Subir a blockchain real
+    const receipt = await uploadModelBlockchain(
+      formData.title,           // name
+      formData.ipfsHash || '',  // ipfsHash (si tienes IPFS implementado)
+      priceInWei,              // basePrice en wei
+      formData.tokenURI || ''   // tokenURI (metadatos)
+    )
+    
+    console.log('✅ Modelo subido a blockchain:', receipt)
+    
+    // Recargar modelos desde blockchain
+    await loadModels()
+    
+    alert(`Modelo "${formData.title}" subido exitosamente a la blockchain!`)
+    
+  } catch (error) {
+    console.error('❌ Error subiendo modelo:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    alert(`Error al subir modelo: ${errorMessage}`)
+    
+    // Reabrir modal en caso de error
+    isUploadModalOpen.value = true
+  } finally {
+    isUploadingModel.value = false
   }
-  
-  addModel(newModel)
-  alert(`Modelo "${formData.title}" subido exitosamente!`)
 }
 
 /**
@@ -303,6 +315,22 @@ async function handleBuyLicense(planId: number) {
           @view-details="handleViewDetails"
           @upload-model="handleUploadModel"
         />
+        
+        <!-- Upload Loading Overlay -->
+        <div 
+          v-if="isUploadingModel"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-white/20 app-dark:bg-black/20 backdrop-blur-lg"
+        >
+          <div class="bg-white/95 app-dark:bg-gray-900/95 backdrop-blur-sm rounded-lg shadow-2xl p-8 border border-white/20 app-dark:border-gray-700/50">
+            <div class="flex flex-col items-center space-y-4">
+              <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+              <h3 class="text-lg font-medium text-gray-900 app-dark:text-white">Subiendo modelo a blockchain...</h3>
+              <p class="text-gray-600 app-dark:text-gray-400 text-center">
+                Por favor espera mientras se procesa la transacción
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

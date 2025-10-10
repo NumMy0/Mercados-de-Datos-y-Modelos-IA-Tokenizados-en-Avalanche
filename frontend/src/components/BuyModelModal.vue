@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { getModelById, buyLicense } from '../composables/blockchain'
+import { useNotifications } from '../composables/useNotifications'
+import { useBlockchainErrorHandler } from '../composables/useBlockchainErrorHandler'
 import { ethers } from 'ethers'
 import LicensePlanCard from './LicensePlanCard.vue'
 
@@ -39,6 +41,9 @@ const activeTab = ref<'model' | 'licenses'>('model')
 const licensePlans = ref<LicensePlan[]>([])
 const loadingPlans = ref(false)
 const fullModelData = ref<any>(null)
+
+const { notifyTransactionSuccess, notifyError } = useNotifications()
+const { handleAsyncOperation } = useBlockchainErrorHandler()
 
 const truncatedOwner = computed(() => {
   if (!props.model?.owner) return ''
@@ -118,7 +123,7 @@ const handleBuyLicense = async (planId: number) => {
 
   const plan = licensePlans.value.find(p => p.id === planId)
   if (!plan) {
-    alert('Plan no encontrado')
+    notifyError('Plan no encontrado', 'No se pudo encontrar el plan de licencia seleccionado')
     return
   }
 
@@ -134,12 +139,21 @@ const handleBuyLicense = async (planId: number) => {
     const receipt = await buyLicense(props.model.id, planId, priceWei)
     console.log('buyLicense receipt:', receipt)
 
+    // Show success notification
+    notifyTransactionSuccess(
+      'Licencia Comprada',
+      `Has adquirido exitosamente el plan "${plan.name}" para ${plan.price} AVAX`
+    )
+
     // Emit success to parent and close modal
     emit('buyLicense', planId)
     emit('close')
   } catch (err: any) {
     console.error('Error comprando licencia desde BuyModelModal:', err)
-    alert('No se pudo comprar la licencia: ' + (err && err.message ? err.message : String(err)))
+    handleAsyncOperation(
+      () => Promise.reject(err),
+      'compra de licencia'
+    )
   } finally {
     isProcessing.value = false
   }

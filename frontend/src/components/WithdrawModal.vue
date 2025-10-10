@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { withdraw } from '../composables/blockchain'
+import { useNotifications } from '../composables/useNotifications'
+import { useBlockchainErrorHandler } from '../composables/useBlockchainErrorHandler'
 
 defineProps<{
   isOpen: boolean
@@ -13,6 +15,8 @@ const emit = defineEmits<{
 }>()
 
 const isWithdrawing = ref(false)
+const { notifyTransactionSuccess } = useNotifications()
+const { handleAsyncOperation } = useBlockchainErrorHandler()
 
 const handleWithdraw = async () => {
   try {
@@ -22,24 +26,20 @@ const handleWithdraw = async () => {
     const receipt = await withdraw()
     console.log('Retiro exitoso:', receipt)
     
-    alert(`¡Retiro exitoso!\nHash: ${receipt.hash || receipt.transactionHash}`)
+    notifyTransactionSuccess(
+      'Retiro Exitoso',
+      `Tu retiro ha sido procesado exitosamente. Hash: ${receipt.hash || receipt.transactionHash}`
+    )
     
     // Emitir evento de éxito para actualizar el balance
     emit('success')
     emit('close')
   } catch (err: any) {
     console.error('Error al retirar fondos:', err)
-    
-    let errorMessage = 'No se pudo completar el retiro'
-    
-    // Manejo de errores específicos
-    if (err.code === 'ACTION_REJECTED' || err.code === 4001) {
-      errorMessage = 'Transacción rechazada por el usuario'
-    } else if (err.message) {
-      errorMessage = err.message
-    }
-    
-    alert(`Error: ${errorMessage}`)
+    handleAsyncOperation(
+      () => Promise.reject(err),
+      'retiro de fondos'
+    )
   } finally {
     isWithdrawing.value = false
   }
