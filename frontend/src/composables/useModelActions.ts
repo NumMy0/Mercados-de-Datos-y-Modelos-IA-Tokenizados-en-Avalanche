@@ -16,7 +16,15 @@
  */
 
 import { ethers } from 'ethers'
-import { buyModel as buyModelBlockchain } from './blockchain'
+import { 
+  buyModel as buyModelBlockchain,
+  setModelForSale as setForSaleBlockchain,
+  cancelSale as cancelSaleBlockchain,
+  transferModel as transferModelBlockchain,
+  createLicensePlan as createLicensePlanBlockchain,
+  setPlanActive as setPlanActiveBlockchain,
+  buyLicense as buyLicenseBlockchain
+} from './blockchain'
 import type { Model } from './useModels'
 
 export function useModelActions() {
@@ -105,11 +113,16 @@ export function useModelActions() {
     try {
       console.log('setModelForSale:', { modelId, price })
       
-      // TODO: Implementar llamada real al smart contract
-      // await setForSaleBlockchain(modelId, ethers.parseEther(price))
+      // Convertir precio a Wei
+      const priceWei = ethers.parseEther(price)
+      
+      // Ejecutar venta on-chain
+      const receipt = await setForSaleBlockchain(modelId, priceWei)
+      console.log('Modelo puesto en venta, receipt:', receipt)
       
       return {
         success: true,
+        receipt,
         message: `Modelo puesto en venta por ${price} AVAX`,
         updates: {
           forSale: true,
@@ -136,11 +149,13 @@ export function useModelActions() {
     try {
       console.log('cancelSale:', modelId)
       
-      // TODO: Implementar llamada real al smart contract
-      // await cancelSaleBlockchain(modelId)
+      // Ejecutar cancelación on-chain
+      const receipt = await cancelSaleBlockchain(modelId)
+      console.log('Venta cancelada, receipt:', receipt)
       
       return {
         success: true,
+        receipt,
         message: 'Venta cancelada exitosamente!',
         updates: {
           forSale: false,
@@ -176,11 +191,13 @@ export function useModelActions() {
         throw new Error('Dirección Ethereum inválida')
       }
       
-      // TODO: Implementar llamada real al smart contract
-      // await transferModelBlockchain(modelId, toAddress)
+      // Ejecutar transferencia on-chain
+      const receipt = await transferModelBlockchain(toAddress, modelId)
+      console.log('Modelo transferido, receipt:', receipt)
       
       return {
         success: true,
+        receipt,
         message: `Modelo transferido a ${toAddress}`,
         updates: {
           owner: toAddress,
@@ -207,15 +224,25 @@ export function useModelActions() {
    * @param planData - Datos del plan (nombre, precio, duración, etc.)
    * @returns Resultado de la operación
    */
-  async function createLicensePlan(_modelId: number, planData: any) {
+  async function createLicensePlan(modelId: number, planData: any) {
     try {
       console.log('createLicensePlan:', planData)
       
-      // TODO: Implementar llamada real al smart contract
-      // await createLicensePlanBlockchain(_modelId, planData)
+      // Convertir precio a Wei
+      const priceWei = ethers.parseEther(planData.price)
+      
+      // Ejecutar creación de plan on-chain
+      const receipt = await createLicensePlanBlockchain(
+        modelId, 
+        planData.name, 
+        priceWei, 
+        planData.duration
+      )
+      console.log('Plan de licencia creado, receipt:', receipt)
       
       return {
         success: true,
+        receipt,
         message: `Plan de licencia "${planData.name}" creado exitosamente!`,
       }
     } catch (err) {
@@ -231,19 +258,22 @@ export function useModelActions() {
   /**
    * Activa o desactiva un plan de licencia
    * 
+   * @param modelId - ID del modelo
    * @param planId - ID del plan
    * @param active - true para activar, false para desactivar
    * @returns Resultado de la operación
    */
-  async function setPlanActive(planId: number, active: boolean) {
+  async function setPlanActive(modelId: number, planId: number, active: boolean) {
     try {
-      console.log('setPlanActive:', { planId, active })
+      console.log('setPlanActive:', { modelId, planId, active })
       
-      // TODO: Implementar llamada real al smart contract
-      // await setPlanActiveBlockchain(planId, active)
+      // Ejecutar cambio de estado on-chain
+      const receipt = await setPlanActiveBlockchain(modelId, planId, active)
+      console.log('Plan actualizado, receipt:', receipt)
       
       return {
         success: true,
+        receipt,
         message: `Plan ${active ? 'activado' : 'desactivado'} exitosamente!`,
       }
     } catch (err) {
@@ -261,17 +291,38 @@ export function useModelActions() {
    * 
    * @param modelId - ID del modelo
    * @param planId - ID del plan de licencia
+   * @param price - Precio del plan (puede ser string en AVAX o BigInt en Wei). Si no se provee, solo retorna éxito sin llamar blockchain.
    * @returns Resultado de la operación
    */
-  async function buyLicense(modelId: number, planId: number) {
+  async function buyLicense(modelId: number, planId: number, price?: string | bigint) {
     try {
-      console.log('buyLicense:', { modelId, planId })
+      console.log('buyLicense:', { modelId, planId, price })
       
-      // TODO: Implementar llamada real al smart contract
-      // await buyLicenseBlockchain(modelId, planId)
+      // Si no hay precio, asumir que la transacción ya fue ejecutada por otro componente
+      if (!price) {
+        return {
+          success: true,
+          message: 'Licencia comprada exitosamente!',
+        }
+      }
+      
+      // Convertir precio a Wei si es necesario
+      let priceWei: bigint
+      if (typeof price === 'string') {
+        // Si es string, asumir que está en AVAX y convertir a Wei
+        priceWei = ethers.parseEther(price)
+      } else {
+        // Si ya es bigint, usar directamente
+        priceWei = price
+      }
+      
+      // Ejecutar compra de licencia on-chain
+      const receipt = await buyLicenseBlockchain(modelId, planId, priceWei)
+      console.log('Licencia comprada, receipt:', receipt)
       
       return {
         success: true,
+        receipt,
         message: 'Licencia comprada exitosamente!',
       }
     } catch (err) {

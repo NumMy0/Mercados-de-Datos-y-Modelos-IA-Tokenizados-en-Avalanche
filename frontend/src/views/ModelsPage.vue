@@ -252,7 +252,8 @@ async function handleCreateLicensePlan(planData: any) {
 }
 
 async function handleSetPlanActive(planId: number, active: boolean) {
-  const result = await setPlanActive(planId, active)
+  if (!selectedModel.value) return
+  const result = await setPlanActive(selectedModel.value.id, planId, active)
   alert(result.message)
 }
 

@@ -1,4 +1,4 @@
-// src/lib/blockchain.js
+
 import { ethers } from "ethers";
 import contractABI from "../../AIMarketABI.json"; // Asegúrate de tener este ABI (archivo en la raíz del frontend)
 
@@ -204,6 +204,52 @@ export async function cancelSale(modelId: number | string) {
     }
 
     const tx = await (contract as any).cancelSale(modelId)
+    const receipt = await tx.wait()
+    return receipt
+}
+
+/**
+ * transferModel
+ * Transfiere la propiedad de un modelo NFT a otra dirección usando la función personalizada del contrato.
+ * @param toAddress - Dirección del destinatario
+ * @param modelId - ID del modelo a transferir
+ * @returns TransactionReceipt
+ */
+export async function transferModel(toAddress: string, modelId: number | string) {
+    const { contract } = await getSignerAndContract()
+
+    // Validar que la dirección sea válida
+    if (!toAddress || typeof toAddress !== 'string') {
+        throw new Error('Dirección de destino inválida')
+    }
+
+    if (typeof (contract as any).transferModel !== 'function') {
+        throw new Error('La función transferModel no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
+    }
+
+    // Llamar a la función personalizada transferModel(address _to, uint256 _modelId)
+    const tx = await (contract as any).transferModel(toAddress, modelId)
+    const receipt = await tx.wait()
+    return receipt
+}
+
+/**
+ * setPlanActive
+ * Activa o desactiva un plan de licencia de un modelo.
+ * @param modelId - ID del modelo
+ * @param planIndex - Índice del plan de licencia (planId)
+ * @param active - true para activar, false para desactivar
+ * @returns TransactionReceipt
+ */
+export async function setPlanActive(modelId: number | string, planIndex: number, active: boolean) {
+    const { contract } = await getSignerAndContract()
+
+    if (typeof (contract as any).setPlanActive !== 'function') {
+        throw new Error('La función setPlanActive no está disponible en el contrato. Revisa tu ABI y la dirección del contrato.')
+    }
+
+    // Llamar a setPlanActive(uint256 _modelId, uint256 _planId, bool _active)
+    const tx = await (contract as any).setPlanActive(modelId, planIndex, active)
     const receipt = await tx.wait()
     return receipt
 }
