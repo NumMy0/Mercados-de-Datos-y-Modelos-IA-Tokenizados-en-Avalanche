@@ -89,4 +89,21 @@ const transitionName = computed(() => {
   opacity: 0;
   transform: scale(0.9) translateY(20px);
 }
+
+/* Backdrop blur mejorado para modales */
+.modal-backdrop {
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+
+/* Soporte para navegadores que no soportan backdrop-filter */
+@supports not (backdrop-filter: blur(8px)) {
+  .modal-backdrop {
+    background: rgba(255, 255, 255, 0.8);
+  }
+  
+  .app-dark .modal-backdrop {
+    background: rgba(0, 0, 0, 0.8);
+  }
+}
 </style>

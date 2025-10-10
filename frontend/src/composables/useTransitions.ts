@@ -142,6 +142,25 @@ export const useTransitions = () => {
     }
   })
 
+  // Transición para overlay de modales con blur
+  const modalOverlay = (): TransitionConfig => ({
+    initial: { opacity: 0 },
+    enter: { 
+      opacity: 1, 
+      transition: { 
+        duration: 300, 
+        ease: 'easeOut' 
+      } 
+    },
+    leave: { 
+      opacity: 0, 
+      transition: { 
+        duration: 200, 
+        ease: 'easeIn' 
+      } 
+    }
+  })
+
   // Transición de hover para tarjetas
   const cardHover = (): TransitionConfig => ({
     initial: { scale: 1 },
@@ -203,6 +222,7 @@ export const useTransitions = () => {
     slideRight,
     scaleIn,
     modalTransition,
+    modalOverlay,
     cardHover,
     staggeredList,
     navTransition,

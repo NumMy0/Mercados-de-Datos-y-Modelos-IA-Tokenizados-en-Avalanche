@@ -134,7 +134,7 @@ const handleClose = () => {
   <Transition name="modal" appear>
     <div
       v-if="isOpen && model"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white/20 app-dark:bg-black/20 backdrop-blur-lg modal-backdrop"
       @click.self="handleClose"
       v-motion
       :initial="{ opacity: 0 }"
@@ -142,7 +142,7 @@ const handleClose = () => {
       :leave="{ opacity: 0, transition: { duration: 200 } }"
     >
       <div 
-        class="bg-white app-dark:bg-gray-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        class="bg-white/95 app-dark:bg-gray-900/95 backdrop-blur-sm rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20 app-dark:border-gray-700/50"
         v-motion
         :initial="{ scale: 0.9, y: 50 }"
         :enter="{ scale: 1, y: 0, transition: { duration: 400, ease: 'easeOut' } }"
