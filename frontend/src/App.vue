@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import NotificationContainer from './components/NotificationContainer.vue'
-import NotificationTester from './components/NotificationTester.vue'
 
 const route = useRoute()
 
