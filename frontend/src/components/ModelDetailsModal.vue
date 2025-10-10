@@ -1,13 +1,32 @@
+<!-- 
+  ModelDetailsModal.vue
+  
+  Responsabilidad única: COORDINAR las diferentes tabs del modal de detalles del modelo
+  
+  Este componente es un ORQUESTADOR que:
+  - Gestiona qué tab está activa
+  - Carga los datos del modelo desde blockchain
+  - Distribuye datos a los sub-componentes (tabs)
+  - Maneja eventos de los sub-componentes y los delega al componente padre o blockchain
+  
+  NO contiene lógica de UI específica de cada tab (delegada a sub-componentes)
+-->
+
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import ModelInfoField from './ModelInfoField.vue'
-import LicensePlanCard from './LicensePlanCard.vue'
 import InferenceModal from './InferenceModal.vue'
+import ModelDetailsTab from './tabs/ModelDetailsTab.vue'
+import LicenseManagementTab from './tabs/LicenseManagementTab.vue'
+import SaleManagementTab from './tabs/SaleManagementTab.vue'
+import TransferTab from './tabs/TransferTab.vue'
 import { getModelById, createLicensePlan, cancelSale, setModelForSale, buyLicense } from '../composables/blockchain'
 import { fetchMetadata } from '../composables/ipfs'
 import { ethers } from 'ethers'
 
-// Types alineados con getModelById y getPlans
+// ========================================
+// TIPOS
+// ========================================
+
 interface LicensePlan {
   id: number
   name: string | null
@@ -20,7 +39,6 @@ interface LicensePlan {
 interface ModelDetails {
   id: string
   author: string | null
-  // fallback
   owner?: string | null
   name?: string | null
   ipfsHash?: string | null
@@ -32,23 +50,22 @@ interface ModelDetails {
   forSale?: boolean
   plansCount?: number | null
   plans?: LicensePlan[] | null
-
-  // campos UI opcionales
   description?: string | null
   category?: string | null
   modelType?: string | null
   features?: string | null
 }
 
-interface LicensePlanFormData {
-  name: string
-  price: string
-  duration: number
-}
-
 type TabType = 'details' | 'licenses' | 'sale' | 'transfer'
 
-// Props & Emits
+// ========================================
+// PROPS & EMITS
+// ========================================
+
+// ========================================
+// PROPS & EMITS
+// ========================================
+
 const props = defineProps<{
   isOpen: boolean
   modelId: number | null
@@ -66,31 +83,29 @@ const emit = defineEmits<{
   transferModel: [toAddress: string]
 }>()
 
-// State - UI
+// ========================================
+// ESTADO DEL MODAL
+// ========================================
+
+// UI State
 const activeTab = ref<TabType>('details')
-const showLicenseForm = ref(false)
 const isInferenceModalOpen = ref(false)
 
-// State - Model Data
+// Data State
 const modelData = ref<ModelDetails | null>(null)
 const licensePlans = ref<LicensePlan[]>([])
 const userHasLicense = ref(false)
 const licenseExpiry = ref<number>(0)
 
-// State - Forms
-const licensePlanForm = ref<LicensePlanFormData>({
-  name: '',
-  price: '',
-  duration: 30
-})
-const salePrice = ref('')
-const transferAddress = ref('')
+// Loading States (para pasar a sub-componentes)
 const creatingPlan = ref(false)
 const settingForSale = ref(false)
 const cancellingSale = ref(false)
 const buyingLicense = ref(false)
 
-// Computed Properties
+// ========================================
+// COMPUTED PROPERTIES (para derivar datos)
+// ========================================
 const ownerAddress = computed(() => {
   return (modelData.value?.author || modelData.value?.owner || '') as string
 })
