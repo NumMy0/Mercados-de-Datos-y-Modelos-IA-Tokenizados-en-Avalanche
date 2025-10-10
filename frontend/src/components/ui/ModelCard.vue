@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useTransitions } from '../../composables/useTransitions'
+
 interface Model {
   id: number
   name: string
@@ -10,11 +12,14 @@ interface Model {
 const props = defineProps<{
   model: Model
   isConnected: boolean
+  index?: number
 }>()
 
 const emit = defineEmits<{
   viewDetails: [modelId: number]
 }>()
+
+const { staggeredList } = useTransitions()
 
 const handleViewDetails = () => {
   emit('viewDetails', props.model.id)
@@ -23,7 +28,15 @@ const handleViewDetails = () => {
 
 <template>
   <div 
-    class="bg-white app-dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 overflow-hidden border border-gray-200 app-dark:border-gray-700 w-full"
+    class="bg-white app-dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 app-dark:border-gray-700 w-full cursor-pointer"
+    @click="handleViewDetails"
+    v-motion
+    v-bind="staggeredList(props.index || 0)"
+    :hovered="{ 
+      scale: 1.05, 
+      y: -8,
+      transition: { duration: 200, ease: 'easeOut' }
+    }"
   >
     <div class="p-5 sm:p-6 flex flex-col h-[280px] sm:h-[320px]">
       <!-- Category Badge -->

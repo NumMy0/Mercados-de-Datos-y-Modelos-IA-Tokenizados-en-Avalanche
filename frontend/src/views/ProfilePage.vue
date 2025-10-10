@@ -283,11 +283,20 @@ function handleBuyModel() {
 <template>
   <div class="min-h-screen w-full bg-gray-50 app-dark:bg-gray-900 transition-colors duration-200">
     <!-- Header -->
-    <Header />
+    <Header 
+      v-motion
+      :initial="{ opacity: 0, y: -50 }"
+      :enter="{ opacity: 1, y: 0, transition: { duration: 500, ease: 'easeOut' } }"
+    />
 
     <!-- Main Content -->
     <div class="min-h-screen w-full py-8">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div 
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+        v-motion
+        :initial="{ opacity: 0, y: 30 }"
+        :enter="{ opacity: 1, y: 0, transition: { duration: 600, ease: 'easeOut', delay: 200 } }"
+      >
         
         <!-- Profile Header Component -->
         <ProfileHeader
@@ -298,10 +307,18 @@ function handleBuyModel() {
           :licenses-count="activeLicensesCount"
           @copy-address="handleCopyAddress"
           @open-withdraw="handleOpenWithdrawModal"
+          v-motion
+          :initial="{ opacity: 0, scale: 0.95 }"
+          :enter="{ opacity: 1, scale: 1, transition: { duration: 500, ease: 'easeOut', delay: 300 } }"
         />
 
         <!-- Tabs Navigation -->
-        <div class="mb-6">
+        <div 
+          class="mb-6"
+          v-motion
+          :initial="{ opacity: 0, x: -50 }"
+          :enter="{ opacity: 1, x: 0, transition: { duration: 500, ease: 'easeOut', delay: 400 } }"
+        >
           <div class="border-b border-gray-200 app-dark:border-gray-700">
             <nav class="flex gap-8">
               <button

@@ -4,22 +4,26 @@ const routes = [
   {
     path: '/',
     name: 'WelcomePage',
-    component: () => import('../views/welcomePage.vue')
+    component: () => import('../views/welcomePage.vue'),
+    meta: { transition: 'fade' }
   },
   {
     path: '/models',
     name: 'ModelsPage',
-    component: () => import('../views/ModelsPage.vue')
+    component: () => import('../views/ModelsPage.vue'),
+    meta: { transition: 'page' }
   },
   {
     path: '/profile',
     name: 'ProfilePage',
-    component: () => import('../views/ProfilePage.vue')
+    component: () => import('../views/ProfilePage.vue'),
+    meta: { transition: 'page' }
   }, 
   {
     path: '/about',
     name: 'About',
-    component: () => import('../views/About.vue')
+    component: () => import('../views/About.vue'),
+    meta: { transition: 'fade' }
   }
 ]
 

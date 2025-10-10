@@ -131,13 +131,23 @@ const handleClose = () => {
 </script>
 
 <template>
-  <Transition name="modal">
+  <Transition name="modal" appear>
     <div
       v-if="isOpen && model"
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm"
       @click.self="handleClose"
+      v-motion
+      :initial="{ opacity: 0 }"
+      :enter="{ opacity: 1, transition: { duration: 300 } }"
+      :leave="{ opacity: 0, transition: { duration: 200 } }"
     >
-      <div class="bg-white app-dark:bg-gray-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div 
+        class="bg-white app-dark:bg-gray-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        v-motion
+        :initial="{ scale: 0.9, y: 50 }"
+        :enter="{ scale: 1, y: 0, transition: { duration: 400, ease: 'easeOut' } }"
+        :leave="{ scale: 0.9, y: 50, transition: { duration: 200, ease: 'easeIn' } }"
+      >
         <!-- Header -->
         <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 rounded-t-xl">
           <div class="flex justify-between items-center">

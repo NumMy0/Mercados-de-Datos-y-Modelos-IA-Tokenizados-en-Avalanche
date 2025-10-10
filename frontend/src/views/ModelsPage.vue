@@ -279,11 +279,20 @@ async function handleBuyLicense(planId: number) {
 <template>
   <div class="min-h-screen w-full bg-gray-50 app-dark:bg-gray-900 transition-colors duration-200">
     <!-- Header -->
-    <Header />
+    <Header 
+      v-motion
+      :initial="{ opacity: 0, y: -50 }"
+      :enter="{ opacity: 1, y: 0, transition: { duration: 500, ease: 'easeOut' } }"
+    />
 
     <!-- Main Content -->
     <div class="min-h-screen w-full">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div 
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+        v-motion
+        :initial="{ opacity: 0, y: 30 }"
+        :enter="{ opacity: 1, y: 0, transition: { duration: 600, ease: 'easeOut', delay: 200 } }"
+      >
         <!-- Models Grid Component -->
         <ModelsGrid
           :models="filteredModels"

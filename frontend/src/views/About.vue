@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useTransitions } from '../composables/useTransitions'
 import Header from '../components/ui/header.vue'
 import { 
   Lock, 
@@ -20,6 +21,7 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const { staggeredList } = useTransitions()
 
 const features = [
   {
@@ -128,7 +130,9 @@ const faqs = [
 ]
 
 const toggleFaq = (index: number) => {
-  faqs[index].open.value = !faqs[index].open.value
+  if (faqs[index] && faqs[index].open) {
+    faqs[index].open.value = !faqs[index].open.value
+  }
 }
 
 const scrollToSection = (sectionId: string) => {
@@ -141,10 +145,19 @@ const scrollToSection = (sectionId: string) => {
 
 <template>
   <div class="min-h-screen bg-gray-50 app-dark:bg-gray-950 transition-colors duration-200">
-    <Header />
+    <Header 
+      v-motion
+      :initial="{ opacity: 0, y: -50 }"
+      :enter="{ opacity: 1, y: 0, transition: { duration: 500, ease: 'easeOut' } }"
+    />
     
     <!-- Hero Section -->
-    <section class="relative overflow-hidden bg-gradient-to-br from-blue-600 to-purple-700 text-white py-20 sm:py-24">
+    <section 
+      class="relative overflow-hidden bg-gradient-to-br from-blue-600 to-purple-700 text-white py-20 sm:py-24"
+      v-motion
+      :initial="{ opacity: 0, scale: 0.95 }"
+      :enter="{ opacity: 1, scale: 1, transition: { duration: 800, ease: 'easeOut', delay: 200 } }"
+    >
       <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCA0LTEuNzkgNC00em0wLTEwYzAtMi4yMS0xLjc5LTQtNC00cy00IDEuNzktNCA0IDEuNzkgNCA0IDQgNC0xLjc5IDQtNHptMC0xMGMwLTIuMjEtMS43OS00LTQtNHMtNCAxLjc5LTQgNCAxLjc5IDQgNCA0IDQtMS43OSA0LTR6TTI0IDM0YzAtMi4yMS0xLjc5LTQtNC00cy00IDEuNzktNCA0IDEuNzkgNCA0IDQgNC0xLjc5IDQtNHptMC0xMGMwLTIuMjEtMS43OS00LTQtNHMtNCAxLjc5LTQgNCAxLjc5IDQgNCA0IDQtMS43OSA0LTR6bTAtMTBjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCA0LTEuNzkgNC00ek0xMiAzNGMwLTIuMjEtMS43OS00LTQtNHMtNCAxLjc5LTQgNCAxLjc5IDQgNCA0IDQtMS43OSA0LTR6bTAtMTBjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCA0LTEuNzkgNC00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
       
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -172,10 +185,30 @@ const scrollToSection = (sectionId: string) => {
     </section>
 
     <!-- Stats Section -->
-    <section class="py-12 bg-white app-dark:bg-gray-900 transition-colors duration-200">
+    <section 
+      class="py-12 bg-white app-dark:bg-gray-900 transition-colors duration-200"
+      v-motion
+      :initial="{ opacity: 0, y: 50 }"
+      :enter="{ opacity: 1, y: 0, transition: { duration: 600, ease: 'easeOut', delay: 400 } }"
+    >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-2 md:grid-cols-3 gap-8">
-          <div v-for="stat in stats" :key="stat.label" class="text-center">
+          <div 
+            v-for="(stat, index) in stats" 
+            :key="stat.label" 
+            class="text-center"
+            v-motion
+            :initial="{ opacity: 0, scale: 0.8 }"
+            :enter="{ 
+              opacity: 1, 
+              scale: 1, 
+              transition: { 
+                duration: 400,
+                delay: 600 + (index * 100),
+                ease: 'easeOut'
+              } 
+            }"
+          >
             <div class="text-3xl sm:text-4xl font-bold text-blue-600 app-dark:text-blue-400 mb-2">
               {{ stat.value }}
             </div>
@@ -201,9 +234,11 @@ const scrollToSection = (sectionId: string) => {
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           <div 
-            v-for="feature in features" 
+            v-for="(feature, index) in features" 
             :key="feature.title"
             class="bg-white app-dark:bg-gray-900 p-6 sm:p-8 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 border border-gray-200 app-dark:border-gray-800 group"
+            v-motion
+            v-bind="staggeredList(index, 100)"
           >
             <div class="w-12 h-12 mb-4 bg-blue-100 app-dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
               <component :is="feature.icon" class="w-6 h-6 text-blue-600 app-dark:text-blue-400" />

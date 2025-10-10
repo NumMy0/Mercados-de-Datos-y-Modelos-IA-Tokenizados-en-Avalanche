@@ -12,6 +12,7 @@
 -->
 
 <script setup lang="ts">
+import { useTransitions } from '../composables/useTransitions'
 import type { Model } from '../composables/useModels'
 import ModelCard from './ui/ModelCard.vue'
 
@@ -33,6 +34,12 @@ withDefaults(defineProps<Props>(), {
   emptyMessage: 'No hay modelos subidos aún',
   emptySubMessage: 'Sé el primero en subir un modelo de IA al marketplace'
 })
+
+// ========================================
+// COMPOSABLES
+// ========================================
+
+const { slideUp } = useTransitions()
 
 // ========================================
 // EVENTS
@@ -59,11 +66,19 @@ function handleUploadModel() {
 <template>
   <div class="w-full">
     <!-- Upload Model Button -->
-    <div v-if="showUploadButton" class="flex justify-end py-4 sm:py-6">
+    <div 
+      v-if="showUploadButton" 
+      class="flex justify-end py-4 sm:py-6"
+      v-motion
+      v-bind="slideUp(0)"
+    >
       <button 
         @click="handleUploadModel"
         :disabled="!isConnected"
         class="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 text-sm sm:text-base bg-green-500 app-dark:bg-green-600 text-white rounded-lg font-medium hover:bg-green-600 app-dark:hover:bg-green-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        v-motion
+        :hovered="{ scale: 1.05, transition: { duration: 200 } }"
+        :tapped="{ scale: 0.95, transition: { duration: 100 } }"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
@@ -97,10 +112,11 @@ function handleUploadModel() {
       class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 pb-8"
     >
       <ModelCard
-        v-for="model in models"
+        v-for="(model, index) in models"
         :key="model.id"
         :model="model"
         :is-connected="isConnected"
+        :index="index"
         @view-details="handleViewDetails"
       />
     </div>

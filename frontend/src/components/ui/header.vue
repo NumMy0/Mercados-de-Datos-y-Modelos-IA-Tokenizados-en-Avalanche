@@ -2,9 +2,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWallet } from '../../composables/useWallet'
+import { useTransitions } from '../../composables/useTransitions'
 
 const router = useRouter()
 const { isConnected, account, connectWallet } = useWallet()
+const { slideLeft } = useTransitions()
 const isMenuOpen = ref(false)
 
 const toggleMenu = () => {
@@ -37,6 +39,8 @@ const truncateAddress = (address: string) => {
         <button 
           @click="navigateTo('/')" 
           class="flex items-center cursor-pointer flex-shrink-0"
+          v-motion
+          v-bind="slideLeft(100)"
         >
           <span class="text-lg md:text-xl font-semibold app-dark:text-white transition-colors duration-200">
             <span class="hidden sm:inline">Data & AI Models Marketplace</span>

@@ -187,14 +187,24 @@ const handleClose = () => {
 
 <template>
   <!-- Modal Overlay -->
-  <Transition name="modal">
+  <Transition name="modal" appear>
     <div 
       v-if="isOpen"
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm"
       @click.self="handleClose"
+      v-motion
+      :initial="{ opacity: 0 }"
+      :enter="{ opacity: 1, transition: { duration: 300 } }"
+      :leave="{ opacity: 0, transition: { duration: 200 } }"
     >
       <!-- Modal Content -->
-      <div class="w-full max-w-2xl bg-white app-dark:bg-gray-900 rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div 
+        class="w-full max-w-2xl bg-white app-dark:bg-gray-900 rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto"
+        v-motion
+        :initial="{ scale: 0.9, y: 50 }"
+        :enter="{ scale: 1, y: 0, transition: { duration: 400, ease: 'easeOut' } }"
+        :leave="{ scale: 0.9, y: 50, transition: { duration: 200, ease: 'easeIn' } }"
+      >
         <!-- Modal Header -->
         <div class="sticky top-0 bg-white app-dark:bg-gray-900 border-b border-gray-200 app-dark:border-gray-700 px-6 py-3.5 flex justify-between items-center">
           <h2 class="text-gray-900 app-dark:text-white font-bold text-2xl">
