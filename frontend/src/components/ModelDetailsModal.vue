@@ -92,6 +92,7 @@ const modelData = ref<ModelDetails | null>(null)
 const licensePlans = ref<LicensePlan[]>([])
 const userHasLicense = ref(false)
 const licenseExpiry = ref<number>(0)
+const loadingModelData = ref(false)
 
 // Loading States para sub-componentes
 const creatingPlan = ref(false)
@@ -155,10 +156,19 @@ const inferenceModel = computed(() => {
 // ========================================
 
 const loadModelData = async () => {
-  if (!props.modelId) return
+  console.log('ModelDetailsModal - Intentando cargar datos para modelId:', props.modelId)
+  
+  if (!props.modelId) {
+    console.log('ModelDetailsModal - No modelId proporcionado')
+    return
+  }
+
+  loadingModelData.value = true
 
   try {
+    console.log('ModelDetailsModal - Obteniendo datos del modelo desde blockchain...')
     const raw = await getModelById(props.modelId)
+    console.log('ModelDetailsModal - Datos raw del modelo:', raw)
 
     // Intentar obtener metadata desde IPFS
     let metadata: any = null
@@ -203,6 +213,8 @@ const loadModelData = async () => {
       features: metadata?.features ?? null
     }
 
+    console.log('ModelDetailsModal - Datos del modelo procesados:', modelData.value)
+
     licensePlans.value = plans ?? []
 
     // Simulación de estado de licencia (temporal - debe venir de blockchain)
@@ -227,6 +239,8 @@ const loadModelData = async () => {
       plans: null
     }
     licensePlans.value = []
+  } finally {
+    loadingModelData.value = false
   }
 
   activeTab.value = 'details'
@@ -467,8 +481,12 @@ watch(() => props.modelId, (newId) => {
         <!-- Header del Modal -->
         <div class="bg-white app-dark:bg-gray-900 border-b border-gray-200 app-dark:border-gray-700 px-6 py-4 flex justify-between items-center">
           <div>
-            <h2 class="text-gray-900 app-dark:text-white font-bold text-2xl">{{ modelData.name }}</h2>
-            <p class="text-sm text-gray-500 app-dark:text-gray-400 mt-1">ID: {{ modelData.id }}</p>
+            <h2 class="text-gray-900 app-dark:text-white font-bold text-2xl">
+              {{ modelData?.name || 'Cargando...' }}
+            </h2>
+            <p class="text-sm text-gray-500 app-dark:text-gray-400 mt-1">
+              ID: {{ modelData?.id || props.modelId || '...' }}
+            </p>
           </div>
           <button 
             @click="handleClose"
@@ -534,12 +552,20 @@ watch(() => props.modelId, (newId) => {
 
         <!-- Contenido de las Tabs (Sub-componentes) -->
         <div class="flex-1 overflow-y-auto p-6">
-          <!-- Tab: Detalles del Modelo -->
-          <ModelDetailsTab
-            v-if="activeTab === 'details'"
-            :model-data="modelData"
-            :is-owner="isOwner"
-            :has-for-sale-price="hasForSalePrice"
+          <!-- Loading State -->
+          <div v-if="loadingModelData" class="text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p class="text-gray-600 app-dark:text-gray-400">Cargando datos del modelo...</p>
+          </div>
+
+          <!-- Content when loaded -->
+          <template v-else-if="modelData">
+            <!-- Tab: Detalles del Modelo -->
+            <ModelDetailsTab
+              v-if="activeTab === 'details'"
+              :model-data="modelData"
+              :is-owner="isOwner"
+              :has-for-sale-price="hasForSalePrice"
             :display-price="displayPrice"
             :owner-short="ownerShort"
             @buy-model="handleBuyModel"
@@ -571,11 +597,25 @@ watch(() => props.modelId, (newId) => {
             @cancel-sale="handleCancelSale"
           />
 
-          <!-- Tab: Transferencia del NFT -->
-          <TransferTab
-            v-if="activeTab === 'transfer' && isOwner"
-            @transfer="handleTransfer"
-          />
+            <!-- Tab: Transferencia del NFT -->
+            <TransferTab
+              v-if="activeTab === 'transfer' && isOwner"
+              @transfer="handleTransfer"
+            />
+          </template>
+
+          <!-- Error state -->
+          <div v-else class="text-center py-12">
+            <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <h3 class="text-lg font-semibold text-gray-900 app-dark:text-gray-100 mb-2">
+              Error al cargar el modelo
+            </h3>
+            <p class="text-gray-600 app-dark:text-gray-400">
+              No se pudieron cargar los datos del modelo
+            </p>
+          </div>
         </div>
       </div>
     </div>

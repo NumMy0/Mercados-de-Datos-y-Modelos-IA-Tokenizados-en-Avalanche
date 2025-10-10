@@ -27,12 +27,15 @@ import { useWallet } from '../composables/useWallet'
 import { useModels } from '../composables/useModels'
 import { useUserProfile } from '../composables/useUserProfile'
 import { useModelActions } from '../composables/useModelActions'
+import { useNotifications } from '../composables/useNotifications'
+import { getModelById } from '../composables/blockchain'
 import Header from '../components/ui/header.vue'
 import ProfileHeader from '../components/ProfileHeader.vue'
 import ModelsGrid from '../components/ModelsGrid.vue'
 import LicensesList from '../components/LicensesList.vue'
 import ModelDetailsModal from '../components/ModelDetailsModal.vue'
 import WithdrawModal from '../components/WithdrawModal.vue'
+import RenewLicenseModal from '../components/RenewLicenseModal.vue'
 
 // ========================================
 // COMPOSABLES
@@ -82,7 +85,18 @@ const {
 
 const activeTab = ref<'models' | 'licenses'>('models')
 const isDetailsModalOpen = ref(false)
+const selectedModelIdForModal = ref<number | null>(null)
 const showWithdrawModal = ref(false)
+const showRenewModal = ref(false)
+const renewLicenseData = ref<{
+  modelId: number
+  licenseId: string
+  modelName: string
+  currentPlan: string
+  availablePlans: any[]
+} | null>(null)
+
+const { notifyError, notifyInfo } = useNotifications()
 
 // ========================================
 // COMPUTED PROPERTIES
@@ -147,12 +161,32 @@ function handleChangeTab(tab: 'models' | 'licenses') {
 // ========================================
 
 function handleViewModelDetails(modelId: number) {
+  console.log('Intentando seleccionar modelo con ID:', modelId)
+  console.log('Modelos disponibles en el estado:', models.value.map(m => ({ id: m.id, name: m.name })))
+  console.log('Tipos de IDs:', models.value.map(m => ({ id: m.id, type: typeof m.id })))
+  console.log('Tipo del modelId buscado:', typeof modelId)
+  
+  // Verificar si el modelo existe en la lista
+  const foundModel = models.value.find(m => m.id === modelId)
+  console.log('Modelo encontrado en la lista:', foundModel)
+  
+  // Guardar el ID para el modal, independientemente de si está en la lista local
+  selectedModelIdForModal.value = modelId
+  
+  // También seleccionar en el estado local si existe (para compatibilidad)
   selectModel(modelId)
+  
+  console.log('Modelo seleccionado después de selectModel:', selectedModel.value)
+  console.log('ID para modal:', selectedModelIdForModal.value)
+  
   isDetailsModalOpen.value = true
+  
+  console.log('Modal abierto:', isDetailsModalOpen.value)
 }
 
 function handleCloseDetailsModal() {
   isDetailsModalOpen.value = false
+  selectedModelIdForModal.value = null
   selectModel(null)
 }
 
@@ -165,6 +199,21 @@ function handleOpenWithdrawModal() {
 
 function handleCloseWithdrawModal() {
   showWithdrawModal.value = false
+}
+
+function handleCloseRenewModal() {
+  showRenewModal.value = false
+  renewLicenseData.value = null
+}
+
+function handleRenewSuccess(planId: number) {
+  console.log('Licencia renovada exitosamente con plan:', planId)
+  
+  // Recargar licencias del usuario para reflejar los cambios
+  loadUserLicenses()
+  
+  // Cerrar modal
+  handleCloseRenewModal()
 }
 
 // ========================================
@@ -265,13 +314,74 @@ async function handleTransferModel(toAddress: string) {
 // ========================================
 
 function handleViewModelFromLicense(modelId: number) {
+  console.log('Abriendo detalles del modelo desde licencia. ModelId:', modelId)
+  console.log('selectedModel antes:', selectedModel.value)
+  console.log('isDetailsModalOpen antes:', isDetailsModalOpen.value)
+  
   handleViewModelDetails(modelId)
+  
+  console.log('selectedModel después:', selectedModel.value)
+  console.log('isDetailsModalOpen después:', isDetailsModalOpen.value)
 }
 
 function handleRenewLicense(payload: { modelId: number; licenseId: string }) {
   console.log('Renovar licencia:', payload)
-  // TODO: Implementar renovación de licencia
-  alert('Funcionalidad de renovación en desarrollo')
+  
+  // Buscar la licencia correspondiente para obtener información
+  const license = licenses.value.find(l => l.id === payload.licenseId)
+  if (!license) {
+    notifyError('Licencia no encontrada', 'No se pudo encontrar la información de la licencia')
+    return
+  }
+
+  // Cargar datos del modelo para obtener planes disponibles
+  loadModelDataForRenewal(payload.modelId, payload.licenseId, license)
+}
+
+async function loadModelDataForRenewal(modelId: number, licenseId: string, license: any) {
+  try {
+    // Cargar datos del modelo desde blockchain
+    const modelData = await getModelById(modelId)
+    
+    // Extraer planes activos
+    const availablePlans = modelData.plans 
+      ? modelData.plans
+          .filter((p: any) => p.active) // Solo planes activos
+          .map((p: any, index: number) => ({
+            id: p.id ?? index,
+            name: p.name || `Plan ${index + 1}`,
+            price: p.price || '0',
+            priceWei: p.priceWei ?? null,
+            duration: p.duration || 30,
+            active: p.active !== false
+          }))
+      : []
+
+    if (availablePlans.length === 0) {
+      notifyInfo(
+        'Sin Planes Disponibles',
+        'Este modelo no tiene planes de licencia activos para renovar'
+      )
+      return
+    }
+
+    // Configurar datos para el modal
+    renewLicenseData.value = {
+      modelId,
+      licenseId,
+      modelName: license.modelName || modelData.name || `Modelo #${modelId}`,
+      currentPlan: license.planName || 'Plan Actual',
+      availablePlans
+    }
+
+    showRenewModal.value = true
+  } catch (err) {
+    console.error('Error cargando datos para renovación:', err)
+    notifyError(
+      'Error al Cargar Datos',
+      'No se pudieron cargar los planes disponibles para renovar'
+    )
+  }
 }
 
 // Handler placeholder para compatibilidad con ModelDetailsModal
@@ -384,7 +494,7 @@ function handleBuyModel() {
     <ModelDetailsModal 
       v-if="isDetailsModalOpen"
       :is-open="isDetailsModalOpen"
-      :model-id="selectedModel?.id ?? null"
+      :model-id="selectedModelIdForModal"
       :user-address="account"
       @close="handleCloseDetailsModal"
       @create-license-plan="handleCreateLicensePlan"
@@ -394,6 +504,14 @@ function handleBuyModel() {
       @set-for-sale="handleSetForSale"
       @cancel-sale="handleCancelSale"
       @transfer-model="handleTransferModel"
+    />
+
+    <!-- Renew License Modal -->
+    <RenewLicenseModal
+      :is-open="showRenewModal"
+      :license-data="renewLicenseData"
+      @close="handleCloseRenewModal"
+      @success="handleRenewSuccess"
     />
   </div>
 </template>

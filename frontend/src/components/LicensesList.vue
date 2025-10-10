@@ -88,9 +88,12 @@ function handleRenewLicense(license: UserLicense) {
     <!-- Licenses List -->
     <div v-else class="space-y-4">
       <div
-        v-for="license in licenses"
+        v-for="(license, index) in licenses"
         :key="license.id"
-        class="bg-white app-dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 app-dark:border-gray-700 hover:shadow-lg transition-shadow"
+        class="bg-white app-dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 app-dark:border-gray-700 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
+        v-motion
+        :initial="{ opacity: 0, y: 50 }"
+        :enter="{ opacity: 1, y: 0, transition: { duration: 500, ease: 'easeOut', delay: index * 100 } }"
       >
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <!-- License Info -->
@@ -164,7 +167,10 @@ function handleRenewLicense(license: UserLicense) {
           <div class="flex flex-col gap-2">
             <button
               @click="handleViewModel(license.modelId)"
-              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium whitespace-nowrap"
+              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium whitespace-nowrap transform hover:scale-105 duration-200"
+              v-motion
+              :initial="{ opacity: 0, scale: 0.9 }"
+              :enter="{ opacity: 1, scale: 1, transition: { duration: 300, ease: 'easeOut' } }"
             >
               Ver Modelo
             </button>
@@ -172,11 +178,14 @@ function handleRenewLicense(license: UserLicense) {
               v-if="!license.isActive || (license.daysLeft ?? 0) < 7"
               @click="handleRenewLicense(license)"
               :class="[
-                'px-4 py-2 rounded-lg transition-colors text-sm font-medium whitespace-nowrap',
+                'px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium whitespace-nowrap transform hover:scale-105',
                 license.isActive
-                  ? 'bg-yellow-500 text-white hover:bg-yellow-600'
-                  : 'bg-green-500 text-white hover:bg-green-600'
+                  ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-yellow-200 hover:shadow-yellow-300'
+                  : 'bg-green-500 text-white hover:bg-green-600 shadow-green-200 hover:shadow-green-300'
               ]"
+              v-motion
+              :initial="{ opacity: 0, y: 20 }"
+              :enter="{ opacity: 1, y: 0, transition: { duration: 400, ease: 'easeOut', delay: 100 } }"
             >
               {{ license.isActive ? 'Renovar Pronto' : 'Renovar Licencia' }}
             </button>
