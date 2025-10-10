@@ -23,7 +23,7 @@
 import { ref } from 'vue'
 
 // Props
-const props = defineProps<{
+defineProps<{
   isForSale: boolean
   currentPrice: string | null
   settingForSale: boolean

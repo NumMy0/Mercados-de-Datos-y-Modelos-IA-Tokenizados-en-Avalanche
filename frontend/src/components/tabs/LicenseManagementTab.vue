@@ -43,7 +43,7 @@ interface LicensePlanFormData {
 }
 
 // Props
-const props = defineProps<{
+defineProps<{
   isOwner: boolean
   userHasLicense: boolean
   licenseExpiryDate: string | null

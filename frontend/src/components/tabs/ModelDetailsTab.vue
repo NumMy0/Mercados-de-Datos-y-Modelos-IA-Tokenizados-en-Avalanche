@@ -28,7 +28,7 @@ interface ModelData {
 }
 
 // Props
-const props = defineProps<{
+defineProps<{
   modelData: ModelData
   isOwner: boolean
   hasForSalePrice: boolean

@@ -1,154 +1,126 @@
+<!--
+  Vista: ModelsPage (REFACTORIZADO)
+  
+  RESPONSABILIDAD ÚNICA: COORDINAR composables y componentes
+  
+  Delega toda la lógica compleja:
+  - useModels → Carga y gestión de estado de modelos
+  - useModelActions → Operaciones blockchain (compra, venta, transfer, licencias)
+  - ModelsGrid → Renderizado de la cuadrícula y estados visuales
+  - Modals → Gestión de diálogos (Upload, Details, Buy)
+  
+  Este componente solo:
+  1. Inicializa composables
+  2. Maneja apertura/cierre de modals
+  3. Coordina eventos entre componentes
+  4. Muestra feedback al usuario (alerts)
+-->
+
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useWallet } from '../composables/useWallet'
+import { useModels } from '../composables/useModels'
+import { useModelActions } from '../composables/useModelActions'
 import Header from '../components/ui/header.vue'
-import ModelCard from '../components/ui/ModelCard.vue'
+import ModelsGrid from '../components/ModelsGrid.vue'
 import UploadModelModal from '../components/UploadModelModal.vue'
 import ModelDetailsModal from '../components/ModelDetailsModal.vue'
 import BuyModelModal from '../components/BuyModelModal.vue'
-import { getAllModelIds, getModelById, buyModel } from '../composables/blockchain'
-import { ethers } from 'ethers'
-import { fetchMetadata } from '../composables/ipfs'
+
+// ========================================
+// COMPOSABLES
+// ========================================
 
 const { isConnected, account } = useWallet()
+const { 
+  models, 
+  loadingModels, 
+  selectedModel, 
+  filteredModels,
+  loadModels,
+  selectModel,
+  updateModel,
+  addModel 
+} = useModels(account)
+
+const {
+  buyModel,
+  setModelForSale,
+  cancelModelSale,
+  transferModel,
+  createLicensePlan,
+  setPlanActive,
+  buyLicense,
+} = useModelActions()
+
+// ========================================
+// ESTADO DE MODALS
+// ========================================
+
 const isUploadModalOpen = ref(false)
 const isDetailsModalOpen = ref(false)
 const isBuyModalOpen = ref(false)
-const selectedModelId = ref<number | null>(null)
 
-const models = ref<any[]>([])
-const loadingModels = ref(false)
-
-// Computed para obtener el modelo seleccionado completo
-const selectedModel = computed(() => {
-  if (!selectedModelId.value) return null
-  return models.value.find(m => m.id === selectedModelId.value) || null
-})
-
-// Computed para filtrar modelos que NO son del usuario
-const filteredModels = computed(() => {
-  if (!account.value) return models.value
-  
-  return models.value.filter(model => {
-    const ownerAddr = model.author || model.owner
-    if (!ownerAddr) return true // Si no tiene owner, mostrarlo por defecto
-    
-    try {
-      // Excluir modelos donde el usuario conectado es el propietario
-      return ownerAddr.toLowerCase() !== account.value!.toLowerCase()
-    } catch (e) {
-      return true // En caso de error, mostrar el modelo
-    }
-  })
-})
+// ========================================
+// CICLO DE VIDA
+// ========================================
 
 onMounted(async () => {
-  loadingModels.value = true
-  try {
-    const ids = await getAllModelIds()
-    if (!ids || ids.length === 0) {
-      models.value = []
-      return
-    }
-
-    // Cargar todos los modelos on-chain en paralelo
-    const rawModels = await Promise.all(
-      ids.map(async (id: any) => {
-        try {
-          return await getModelById(id)
-        } catch (err) {
-          console.warn('No se pudo leer model on-chain', id, err)
-          return null
-        }
-      })
-    )
-
-    // Para cada modelo intentar obtener metadata (IPFS). Podemos hacerlo en paralelo.
-    const enriched = await Promise.all(
-      rawModels.map(async (m: any) => {
-        if (!m) return null
-        let metadata: any = null
-        try {
-          metadata = await fetchMetadata(m.id)
-        } catch (err) {
-          // Si la metadata falla, no abortamos todo; dejamos valores por defecto
-          console.debug('No se pudo obtener metadata para', m.id, err)
-        }
-
-        // Preferencias: metadata.name > onchain.name
-        const displayName = metadata?.name ?? m.name ?? `Model #${m.id}`
-        const description = metadata?.description ?? 'Sin descripciÃ³n'
-        const category = metadata?.category ?? 'General'
-        // Precio legible (ya convertido en getModelById a string en AVAX si existe)
-        const priceReadable = (m.forSale ? (m.salePrice ?? m.salePriceWei) : (m.basePrice ?? m.basePriceWei)) ?? null
-        const priceText = priceReadable ? `${priceReadable} AVAX` : 'No disponible'
-
-        return {
-          id: m.id,
-          author: m.author,
-          owner: m.owner,
-          name: displayName,
-          description,
-          price: priceText,
-          priceRaw: priceReadable,
-          category,
-          ipfsHash: m.ipfsHash,
-          tokenURI: m.tokenURI,
-          // bandera para indicar si el modelo está a la venta y precio específico de venta
-          forSale: Boolean(m.forSale),
-          salePriceRaw: m.salePrice ?? m.salePriceWei ?? null,
-          // exponer el valor en wei si el contrato lo devuelve (string)
-          salePriceWei: m.salePriceWei ?? null,
-        }
-      })
-    )
-
-    // Filtrar nulos y asignar
-    models.value = enriched.filter(Boolean)
-  } catch (err) {
-    console.error('Error cargando modelos desde la blockchain:', err)
-  } finally {
-    loadingModels.value = false
-  }
-
-  console.log('Modelos transformados:', models.value)
-  console.log('Modelos filtrados sin los del usuario:', models.value.filter(m => m.owner !== account.value))
+  await loadModels()
 })
 
+// ========================================
+// COMPUTED
+// ========================================
 
-
-const handleUploadModel = () => {
-  if (!isConnected.value) {
-    return
+// Mensaje del estado vacío dependiendo del contexto
+const emptyStateMessage = computed(() => {
+  if (isConnected.value && models.value.length > 0) {
+    return {
+      message: 'No hay modelos disponibles',
+      subMessage: 'Actualmente no hay modelos disponibles para comprar. Vuelve más tarde.'
+    }
   }
+  return {
+    message: 'No hay modelos subidos aún',
+    subMessage: 'Sé el primero en subir un modelo de IA al marketplace'
+  }
+})
+
+// ========================================
+// HANDLERS - MODALS
+// ========================================
+
+function handleUploadModel() {
+  if (!isConnected.value) return
   isUploadModalOpen.value = true
 }
 
-const handleCloseModal = () => {
+function handleCloseUploadModal() {
   isUploadModalOpen.value = false
 }
 
-// se tiene que cambiar para que se active cuando se suba el modelo a la BLOCKCHAIN
-const handleSubmitModel = (formData: any) => {
-  console.log('Modelo a subir:', formData)
-  isUploadModalOpen.value = false
-  
-  const newModel = {
-    id: models.value.length + 1,
-    name: formData.title,
-    description: formData.description,
-    price: `${formData.price} AVAX`,
-    category: formData.category
-  }
-  models.value.push(newModel)
-  
+function handleCloseDetailsModal() {
+  isDetailsModalOpen.value = false
+  selectModel(null)
 }
 
+function handleCloseBuyModal() {
+  isBuyModalOpen.value = false
+  selectModel(null)
+}
 
-const handleViewDetails = (modelId: number) => {
-  selectedModelId.value = modelId
+// ========================================
+// HANDLERS - ACCIONES DE MODELOS
+// ========================================
+
+/**
+ * Maneja la visualización de detalles de un modelo
+ * Determina si mostrar modal de owner (detalles) o modal de compra
+ */
+function handleViewDetails(modelId: number) {
+  selectModel(modelId)
   
-  // Determinar si mostrar modal de detalles o de compra
   const model = models.value.find(m => m.id === modelId)
   if (!model) return
   
@@ -163,107 +135,143 @@ const handleViewDetails = (modelId: number) => {
   }
 }
 
-const handleCloseDetailsModal = () => {
-  isDetailsModalOpen.value = false
-  selectedModelId.value = null
+/**
+ * Maneja la subida de un nuevo modelo
+ * TODO: Conectar con blockchain real
+ */
+function handleSubmitModel(formData: any) {
+  console.log('Modelo a subir:', formData)
+  
+  // Cerrar modal
+  isUploadModalOpen.value = false
+  
+  // Agregar modelo temporal al estado local
+  // TODO: Esperar confirmación blockchain antes de agregar
+  const newModel = {
+    id: models.value.length + 1,
+    name: formData.title,
+    description: formData.description,
+    price: `${formData.price} AVAX`,
+    priceRaw: formData.price,
+    category: formData.category,
+    author: account.value || '',
+    owner: account.value || '',
+    ipfsHash: '',
+    tokenURI: '',
+    forSale: false,
+    salePriceRaw: null,
+    salePriceWei: null,
+  }
+  
+  addModel(newModel)
+  alert(`Modelo "${formData.title}" subido exitosamente!`)
 }
 
-const handleCloseBuyModal = () => {
-  isBuyModalOpen.value = false
-  selectedModelId.value = null
-}
-
-const handleCreateLicensePlan = (planData: any) => {
-  console.log('createLicensePlan:', planData)
-  alert(`Plan de licencia "${planData.name}" creado exitosamente!`)
-}
-
-const handleSetPlanActive = (planId: number, active: boolean) => {
-  console.log('setPlanActive:', { planId, active })
-  alert(`Plan ${active ? 'activado' : 'desactivado'} exitosamente!`)
-}
-
-const handleBuyLicense = (planId: number) => {
-  console.log('buyLicense:', { modelId: selectedModelId.value, planId })
-  alert('Licencia comprada exitosamente!')
-  // Cerrar modal de compra si viene de allí
-  if (isBuyModalOpen.value) {
+/**
+ * Maneja la compra de un modelo NFT
+ */
+async function handleBuyModel() {
+  if (!selectedModel.value) return
+  
+  const result = await buyModel(selectedModel.value, account.value)
+  
+  if (result.success) {
+    // Actualizar estado local
+    updateModel(selectedModel.value.id, result.updates!)
+    
+    // Cerrar modal y mostrar mensaje
     isBuyModalOpen.value = false
-    selectedModelId.value = null
+    selectModel(null)
+    alert(result.message)
+  } else {
+    alert(result.message)
   }
 }
 
-const handleBuyModel = async () => {
-  try {
-    console.log('buyModel:', selectedModelId.value)
-    const model = selectedModel.value
-    if (!model) return
-
-    // Preferir el valor en wei devuelto por el contrato (salePriceWei).
-    // Esto asegura que la wallet solicitará exactamente la cantidad correcta sin entrada manual del usuario.
-    let priceWei: any = null
-    try {
-      if (model.salePriceWei) {
-        // salePriceWei puede ser un string decimal (wei) o hex; convertir a BigInt para ethers
-        const asWei = String(model.salePriceWei)
-        // Si viene en hex con 0x, BigInt lo soporta
-        priceWei = BigInt(asWei)
-      } else {
-        // Fallback: tomar el precio legible y convertir a wei (AVAX -> wei)
-        const rawPrice = model.salePriceRaw ?? model.priceRaw
-        if (!rawPrice) {
-          alert('No se pudo determinar el precio del modelo')
-          return
-        }
-        const asStr = String(rawPrice).trim()
-        if (!asStr.match(/^[0-9]+(\.[0-9]+)?$/)) {
-          alert('Precio inválido')
-          return
-        }
-        priceWei = ethers.parseEther(asStr)
-      }
-    } catch (e) {
-      console.error('Error convirtiendo precio:', e)
-      alert('Error procesando el precio. Revisa la consola.')
-      return
-    }
-
-    // Ejecutar la compra on-chain
-    const receipt = await buyModel(Number(model.id), priceWei)
-    console.log('Modelo comprado, receipt:', receipt)
-
-    // Actualizar estado local: marcar no en venta y actualizar owner al account actual si está disponible
-    const idx = models.value.findIndex(m => String(m.id) === String(model.id))
-    if (idx !== -1) {
-      models.value[idx].forSale = false
-      // si hay account conectado, asignarlo como nuevo owner
-      if (account.value) {
-        models.value[idx].owner = account.value
-      }
-    }
-
-    alert(`Modelo "${model.name}" comprado exitosamente por ${model.price}!`)
-    isBuyModalOpen.value = false
-    selectedModelId.value = null
-  } catch (err) {
-    console.error('Error al comprar modelo:', err)
-    alert('Error al comprar modelo. Revisa la consola.')
+/**
+ * Maneja poner un modelo en venta
+ */
+async function handleSetForSale(price: string) {
+  if (!selectedModel.value) return
+  
+  const result = await setModelForSale(selectedModel.value.id, price)
+  
+  if (result.success) {
+    updateModel(selectedModel.value.id, result.updates!)
+    alert(result.message)
+  } else {
+    alert(result.message)
   }
 }
 
-const handleSetForSale = (price: string) => {
-  console.log('setModelForSale:', { modelId: selectedModelId.value, price })
-  alert(`Modelo puesto en venta por ${price} AVAX`)
+/**
+ * Maneja cancelar la venta de un modelo
+ */
+async function handleCancelSale() {
+  if (!selectedModel.value) return
+  
+  const result = await cancelModelSale(selectedModel.value.id)
+  
+  if (result.success) {
+    updateModel(selectedModel.value.id, result.updates!)
+    alert(result.message)
+  } else {
+    alert(result.message)
+  }
 }
 
-const handleCancelSale = () => {
-  console.log('cancelSale:', selectedModelId.value)
-  alert('Venta cancelada exitosamente!')
+/**
+ * Maneja la transferencia de un modelo
+ */
+async function handleTransferModel(toAddress: string) {
+  if (!selectedModel.value) return
+  
+  const result = await transferModel(selectedModel.value.id, toAddress)
+  
+  if (result.success) {
+    updateModel(selectedModel.value.id, result.updates!)
+    
+    // Cerrar modal ya que el usuario ya no es owner
+    isDetailsModalOpen.value = false
+    selectModel(null)
+    alert(result.message)
+  } else {
+    alert(result.message)
+  }
 }
 
-const handleTransferModel = (toAddress: string) => {
-  console.log('transferModel:', { to: toAddress, modelId: selectedModelId.value })
-  alert(`Modelo transferido a ${toAddress}`)
+// ========================================
+// HANDLERS - LICENCIAS
+// ========================================
+
+async function handleCreateLicensePlan(planData: any) {
+  if (!selectedModel.value) return
+  
+  const result = await createLicensePlan(selectedModel.value.id, planData)
+  alert(result.message)
+}
+
+async function handleSetPlanActive(planId: number, active: boolean) {
+  const result = await setPlanActive(planId, active)
+  alert(result.message)
+}
+
+async function handleBuyLicense(planId: number) {
+  if (!selectedModel.value) return
+  
+  const result = await buyLicense(selectedModel.value.id, planId)
+  
+  if (result.success) {
+    alert(result.message)
+    
+    // Cerrar modal de compra si está abierto
+    if (isBuyModalOpen.value) {
+      isBuyModalOpen.value = false
+      selectModel(null)
+    }
+  } else {
+    alert(result.message)
+  }
 }
 </script>
 
@@ -275,88 +283,16 @@ const handleTransferModel = (toAddress: string) => {
     <!-- Main Content -->
     <div class="min-h-screen w-full">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Upload Model Button -->
-        <div class="flex justify-end py-4 sm:py-6">
-          <button 
-            @click="handleUploadModel"
-            :disabled="!isConnected"
-            class="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 text-sm sm:text-base bg-green-500 app-dark:bg-green-600 text-white rounded-lg font-medium hover:bg-green-600 app-dark:hover:bg-green-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-            </svg>
-            <span class="hidden sm:inline">{{ isConnected ? 'Subir Modelo' : 'Conecta tu Wallet para Subir' }}</span>
-            <span class="sm:hidden">{{ isConnected ? 'Subir' : 'Conectar' }}</span>
-          </button>
-        </div>
-
-        <!-- Loading State -->
-        <div v-if="loadingModels" class="flex flex-col items-center justify-center py-20">
-          <div class="relative">
-            <!-- Spinner externo -->
-            <div class="w-20 h-20 border-4 border-blue-200 app-dark:border-blue-900 rounded-full animate-spin border-t-blue-600 app-dark:border-t-blue-400"></div>
-            <!-- Spinner interno -->
-            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <div class="w-12 h-12 border-4 border-purple-200 app-dark:border-purple-900 rounded-full animate-spin border-t-purple-600 app-dark:border-t-purple-400" style="animation-direction: reverse; animation-duration: 1s;"></div>
-            </div>
-          </div>
-          <p class="mt-6 text-gray-600 app-dark:text-gray-400 text-lg font-medium animate-pulse">
-            Cargando modelos desde la blockchain...
-          </p>
-          <p class="mt-2 text-gray-500 app-dark:text-gray-500 text-sm">
-            Esto puede tomar unos segundos
-          </p>
-        </div>
-
-        <!-- Models Grid -->
-        <div v-else-if="!loadingModels && filteredModels.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 pb-8">
-          <ModelCard
-            v-for="model in filteredModels"
-            :key="model.id"
-            :model="model"
-            :is-connected="isConnected"
-            @view-details="handleViewDetails"
-          />
-        </div>
-
-        <!-- Empty State (solo cuando terminó de cargar y no hay modelos) -->
-        <div 
-          v-else-if="!loadingModels && models.length === 0"
-          class="text-center py-20"
-        >
-          <div class="mb-6">
-            <svg class="w-24 h-24 mx-auto text-gray-300 app-dark:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-            </svg>
-          </div>
-          <h3 class="text-xl sm:text-2xl font-bold text-gray-900 app-dark:text-gray-100 mb-3">
-            {{ isConnected && models.length > 0
-             ? 'No hay modelos disponibles' 
-             : 'No hay modelos subidos aún' }}
-          </h3>
-          <p class="text-gray-500 app-dark:text-gray-400 text-base sm:text-lg mb-6 max-w-md mx-auto">
-            {{ isConnected && models.length > 0 
-            ? 'Actualmente no hay modelos disponibles para comprar. Vuelve más tarde.' 
-            : 'Sé el primero en subir un modelo de IA al marketplace' }}
-          </p>
-          <button
-            v-if="isConnected"
-            @click="handleUploadModel"
-            class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-            </svg>
-            Subir Primer Modelo
-          </button>
-          <button
-            v-else
-            class="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 app-dark:bg-gray-700 text-gray-600 app-dark:text-gray-300 rounded-lg font-medium cursor-not-allowed"
-            disabled
-          >
-            Conecta tu wallet para subir modelos
-          </button>
-        </div>
+        <!-- Models Grid Component -->
+        <ModelsGrid
+          :models="filteredModels"
+          :loading="loadingModels"
+          :is-connected="isConnected"
+          :empty-message="emptyStateMessage.message"
+          :empty-sub-message="emptyStateMessage.subMessage"
+          @view-details="handleViewDetails"
+          @upload-model="handleUploadModel"
+        />
       </div>
     </div>
 
@@ -364,15 +300,15 @@ const handleTransferModel = (toAddress: string) => {
     <UploadModelModal 
       v-if="isUploadModalOpen"
       :is-open="isUploadModalOpen"
-      @close="handleCloseModal"
+      @close="handleCloseUploadModal"
       @submit="handleSubmitModel"
     />
 
-    <!-- Model Details Modal -->
+    <!-- Model Details Modal (para propietarios) -->
     <ModelDetailsModal 
       v-if="isDetailsModalOpen"
       :is-open="isDetailsModalOpen"
-      :model-id="selectedModelId"
+      :model-id="selectedModel?.id ?? null"
       :user-address="account"
       @close="handleCloseDetailsModal"
       @create-license-plan="handleCreateLicensePlan"
@@ -384,7 +320,7 @@ const handleTransferModel = (toAddress: string) => {
       @transfer-model="handleTransferModel"
     />
 
-    <!-- Buy Model Modal -->
+    <!-- Buy Model Modal (para no propietarios) -->
     <BuyModelModal 
       v-if="isBuyModalOpen"
       :is-open="isBuyModalOpen"
@@ -402,30 +338,5 @@ const handleTransferModel = (toAddress: string) => {
   transition-property: background-color, border-color, color;
   transition-duration: 200ms;
   transition-timing-function: ease-in-out;
-}
-
-/* Spinner animations */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin {
-  animation: spin 1.5s linear infinite;
-}
-
-/* Pulse animation for loading text */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 </style>
