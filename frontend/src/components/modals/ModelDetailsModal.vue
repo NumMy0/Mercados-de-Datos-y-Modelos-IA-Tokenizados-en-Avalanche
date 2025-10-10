@@ -15,14 +15,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import InferenceModal from './InferenceModal.vue'
-import ModelDetailsTab from './tabs/ModelDetailsTab.vue'
-import LicenseManagementTab from './tabs/LicenseManagementTab.vue'
-import SaleManagementTab from './tabs/SaleManagementTab.vue'
-import TransferTab from './tabs/TransferTab.vue'
-import { getModelById, createLicensePlan, cancelSale, setModelForSale, buyLicense } from '../composables/blockchain'
-import { fetchMetadata } from '../composables/ipfs'
-import { useNotifications } from '../composables/useNotifications'
-import { useBlockchainErrorHandler } from '../composables/useBlockchainErrorHandler'
+import ModelDetailsTab from '../tabs/ModelDetailsTab.vue'
+import LicenseManagementTab from '../tabs/LicenseManagementTab.vue'
+import SaleManagementTab from '../tabs/SaleManagementTab.vue'
+import TransferTab from '../tabs/TransferTab.vue'
+import { getModelById, createLicensePlan, cancelSale, setModelForSale, buyLicense } from '../../composables/blockchain'
+import { fetchMetadata } from '../../composables/ipfs'
+import { useNotifications } from '../../composables/useNotifications'
+import { useBlockchainErrorHandler } from '../../composables/useBlockchainErrorHandler'
 import { ethers } from 'ethers'
 
 // ========================================

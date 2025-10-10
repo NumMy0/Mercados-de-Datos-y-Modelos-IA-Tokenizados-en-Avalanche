@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import NotificationContainer from './components/NotificationContainer.vue'
+import NotificationContainer from './components/feedback/NotificationContainer.vue'
 
 const route = useRoute()
 

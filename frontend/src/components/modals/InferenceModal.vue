@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useInference } from '../composables/useInference'
-import { useWallet } from '../composables/useWallet'
-import { hasActiveLicense } from '../composables/blockchain'
+import { useInference } from '../../composables/useInference'
+import { useWallet } from '../../composables/useWallet'
+import { hasActiveLicense } from '../../composables/blockchain'
 
 interface Props {
   isOpen: boolean

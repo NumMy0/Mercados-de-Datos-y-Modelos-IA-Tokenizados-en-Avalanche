@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useWallet } from '../composables/useWallet'
 import { useRouter } from 'vue-router'
 import { useTransitions } from '../composables/useTransitions'
-import WelcomeCard from '../components/ui/WelcomeCard.vue'
+import WelcomeCard from '../components/cards/WelcomeCard.vue'
 
 const { connectWallet, isConnecting, error } = useWallet()
 const router = useRouter()

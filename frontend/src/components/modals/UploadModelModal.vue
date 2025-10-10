@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { uploadModelBlockchain } from '../composables/blockchain';
-import { uploadToIPFS, unpinFromIPFS } from '../composables/ipfs';
-import { useNotifications } from '../composables/useNotifications'
-import { useBlockchainErrorHandler } from '../composables/useBlockchainErrorHandler'
+import { uploadModelBlockchain } from '../../composables/blockchain';
+import { uploadToIPFS, unpinFromIPFS } from '../../composables/ipfs';
+import { useNotifications } from '../../composables/useNotifications'
+import { useBlockchainErrorHandler } from '../../composables/useBlockchainErrorHandler'
 import { parseEther } from 'ethers'
 
 defineProps<{

@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import LicensePlanCard from '../LicensePlanCard.vue'
+import LicensePlanCard from '../cards/LicensePlanCard.vue'
 
 interface LicensePlan {
   id: number

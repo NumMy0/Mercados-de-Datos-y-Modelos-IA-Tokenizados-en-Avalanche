@@ -16,7 +16,7 @@
 -->
 
 <script setup lang="ts">
-import ModelInfoField from '../ModelInfoField.vue'
+import ModelInfoField from '../forms/ModelInfoField.vue'
 
 interface ModelData {
   id: string

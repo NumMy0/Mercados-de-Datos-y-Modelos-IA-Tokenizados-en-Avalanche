@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { withdraw } from '../composables/blockchain'
-import { useNotifications } from '../composables/useNotifications'
-import { useBlockchainErrorHandler } from '../composables/useBlockchainErrorHandler'
+import { withdraw } from '../../composables/blockchain'
+import { useNotifications } from '../../composables/useNotifications'
+import { useBlockchainErrorHandler } from '../../composables/useBlockchainErrorHandler'
 
 defineProps<{
   isOpen: boolean

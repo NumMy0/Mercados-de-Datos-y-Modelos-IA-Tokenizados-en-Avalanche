@@ -12,9 +12,9 @@
 -->
 
 <script setup lang="ts">
-import { useTransitions } from '../composables/useTransitions'
-import type { Model } from '../composables/useModels'
-import ModelCard from './ui/ModelCard.vue'
+import { useTransitions } from '../../composables/useTransitions'
+import type { Model } from '../../composables/useModels'
+import ModelCard from '../cards/ModelCard.vue'
 
 // ========================================
 // PROPS

@@ -19,7 +19,7 @@
 -->
 
 <script setup lang="ts">
-import type { UserLicense } from '../composables/useUserProfile'
+import type { UserLicense } from '../../composables/useUserProfile'
 
 // ========================================
 // PROPS

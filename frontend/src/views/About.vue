@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTransitions } from '../composables/useTransitions'
-import Header from '../components/ui/header.vue'
+import Header from '../components/layout/header.vue'
 import { 
   Lock, 
   DollarSign, 

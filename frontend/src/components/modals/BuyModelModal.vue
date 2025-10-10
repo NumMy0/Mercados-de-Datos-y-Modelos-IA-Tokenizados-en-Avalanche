@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { getModelById, buyLicense } from '../composables/blockchain'
-import { useNotifications } from '../composables/useNotifications'
-import { useBlockchainErrorHandler } from '../composables/useBlockchainErrorHandler'
+import { getModelById, buyLicense } from '../../composables/blockchain'
+import { useNotifications } from '../../composables/useNotifications'
+import { useBlockchainErrorHandler } from '../../composables/useBlockchainErrorHandler'
 import { ethers } from 'ethers'
-import LicensePlanCard from './LicensePlanCard.vue'
+import LicensePlanCard from '../cards/LicensePlanCard.vue'
 
 interface ModelDetails {
   id: number

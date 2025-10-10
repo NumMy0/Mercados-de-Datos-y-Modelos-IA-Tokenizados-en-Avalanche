@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useNotifications } from '../composables/useNotifications'
-import { useBlockchainErrorHandler } from '../composables/useBlockchainErrorHandler'
-import { buyLicense } from '../composables/blockchain'
+import { useNotifications } from '../../composables/useNotifications'
+import { useBlockchainErrorHandler } from '../../composables/useBlockchainErrorHandler'
+import { buyLicense } from '../../composables/blockchain'
 import { ethers } from 'ethers'
 
 interface LicensePlan {
