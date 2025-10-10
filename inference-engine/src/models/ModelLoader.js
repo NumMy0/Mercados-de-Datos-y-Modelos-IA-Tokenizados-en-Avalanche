@@ -90,7 +90,7 @@ class ModelLoader {
       logger.info(`Model ${modelId} loaded successfully in ${loadTime}ms`);
 
       return modelData;
-      
+
     } catch (error) {
       logger.error(`Failed to load model ${modelId}:`, error);
       throw new Error(`Model loading failed: ${error.message}`);
@@ -123,6 +123,8 @@ class ModelLoader {
     const modelCid = metadata.model_cid;
     const modelHash = metadata.model_hash;
     const modelId = metadata.model_id;
+    //  ➡️ Nuevo: Extraer el labels_cid de la metadata
+    const labelsCid = metadata.labels_cid; // Asumiendo que el campo se llama labels_cid
 
     logger.info(`Descargando archivo ONNX (CID: ${modelCid}) para el modelo ${modelId}...`);
 
@@ -138,8 +140,25 @@ class ModelLoader {
     }
     logger.info(`Verificación de integridad de hash exitosa para ${modelId}.`);
 
-    // 5. Cargar Labels (Usa la lógica auxiliar que lee el FS, ya que las labels son locales)
-    const labels = await this._loadLabelsFromFile(modelId); 
+    // 5. Cargar Labels desde IPFS
+    let labels = null;
+    if (labelsCid) {
+        logger.info(`Descargando archivo de etiquetas (CID: ${labelsCid})...`);
+        // Usamos fetchFile con isBinary=false para obtener la cadena JSON de etiquetas
+        const rawLabelsJson = await IpfsService.fetchFile(labelsCid, false); 
+        
+        try {
+            labels = JSON.parse(rawLabelsJson);
+            logger.info('Etiquetas cargadas exitosamente desde IPFS.');
+        } catch (e) {
+            logger.error(`Fallo al parsear JSON de etiquetas desde CID ${labelsCid}: ${e.message}`);
+            // Opcional: Podrías optar por un fallback a null en lugar de fallar
+            labels = null; 
+        }
+    } else {
+        logger.warn(`Modelo ${modelId} no especifica labels_cid. Usando índices.`);
+    }
+
 
     // 6. Cargar en ONNX Runtime y Caché (Reutiliza el método base)
     const modelData = await this.loadModel(
@@ -151,24 +170,6 @@ class ModelLoader {
 
     return modelData;
   }
-
-  // Helper privado para cargar labels (Reutilizado de inference.routes.js, pero interno)
-  async _loadLabelsFromFile(modelId) {
-    try {
-      const labelsPath = path.join(
-        this.config.dataDir || './data',
-        'labels',
-        `${modelId}_labels.json`
-      );
-      
-      const labelsData = await fs.readFile(labelsPath, 'utf-8');
-      return JSON.parse(labelsData);
-    } catch (error) {
-      logger.warn(`Labels not found for ${modelId} en el FS. Usando índices. Error: ${error.message}`);
-      return null;
-    }
-  }
-
 
   /**
    * Obtiene un modelo cargado
