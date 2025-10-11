@@ -52,25 +52,62 @@ export function useInference() {
         console.warn('⚠️ No se proporcionó dirección de usuario. Se omitirá la verificación de licencia.')
       }
 
-      const response = await fetch(`${INFERENCE_API_URL}/inference`, {
+      // Determinar el formato de los datos de entrada
+      let inputFormat = 'raw_text'
+      let inputContent = request.input.data
+
+      if (request.input.type === 'image') {
+        if (request.input.data.startsWith('data:image/jpeg')) {
+          inputFormat = 'base64_jpeg'
+          inputContent = request.input.data.split(',')[1] // Remover el prefijo data:image/jpeg;base64,
+      } else if (request.input.data.startsWith('data:image/png')) {
+        inputFormat = 'base64_png'
+        inputContent = request.input.data.split(',')[1] // Remover el prefijo data:image/png;base64,
+        }
+      }
+
+      // Construir payload según el formato esperado por el servidor
+      const payload = {
+        model_id: `model_${request.modelId}_cache`, // Usar formato de cache key
+        execution_mode: "sync",
+        input_data: {
+          format: inputFormat,
+          content: inputContent
+        },
+        options: {
+          top_k: 5,
+          threshold: 0.5,
+          // Incluir configuración de preprocesamiento si existe
+          ...(request.preprocessingConfig && {
+            image_size: request.preprocessingConfig.imageSize,
+            normalize: request.preprocessingConfig.normalize,
+            grayscale: request.preprocessingConfig.grayscale
+          })
+        }
+      }
+
+      console.log('🚀 Enviando payload de inferencia:', payload)
+
+      const response = await fetch(`${INFERENCE_API_URL}/inference/execute`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(request),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Error en la inferencia')
+        throw new Error(errorData.error || `Error HTTP ${response.status}: ${response.statusText}`)
       }
 
       const data = await response.json()
       result.value = data
+      console.log('✅ Resultado de inferencia:', data)
       return data
     } catch (err: any) {
       error.value = err.message || 'Error al ejecutar inferencia'
-      console.error('Error en inferencia:', err)
+      console.error('❌ Error en inferencia:', err)
       return null
     } finally {
       isInferring.value = false

@@ -63,6 +63,8 @@ watch([() => props.isOpen, account], () => {
   }
 }, { immediate: true })
 
+
+// Función para manejar la selección de imagen
 const handleImageSelect = (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]

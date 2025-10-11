@@ -65,32 +65,32 @@ const truncateAddress = (address: string) => {
         <div class="hidden md:flex md:items-center md:space-x-4 lg:space-x-6">
           <button
             @click="navigateTo('/')"
-            class="px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+            class="cursor-pointer px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
           >
             Inicio
           </button>
           <button
             @click="navigateTo('/models')"
-            class="px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+            class="cursor-pointer px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
           >
             Modelos
           </button>
           <button
             @click="navigateTo('/data')"
-            class="px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+            class="cursor-pointer px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
           >
             Datos
           </button>
           <button
             v-if="isConnected"
             @click="navigateTo('/profile')"
-            class="px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+            class="cursor-pointer px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
           >
             Mi Perfil
           </button>
           <button
             @click="navigateTo('/about')"
-            class="px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
+            class="cursor-pointer px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
           >
             Acerca de
           </button>
@@ -99,7 +99,7 @@ const truncateAddress = (address: string) => {
           <button
             v-if="!isConnected"
             @click="handleConnectWallet"
-            class="px-4 lg:px-5 py-2 text-sm lg:text-base text-white bg-blue-500 rounded-lg hover:bg-blue-600 app-dark:bg-blue-600 app-dark:hover:bg-blue-700 transition-colors duration-200 whitespace-nowrap"
+            class="cursor-pointer px-4 lg:px-5 py-2 text-sm lg:text-base text-white bg-blue-500 rounded-lg hover:bg-blue-600 app-dark:bg-blue-600 app-dark:hover:bg-blue-700 transition-colors duration-200 whitespace-nowrap"
           >
             Conectar Wallet
           </button>

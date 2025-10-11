@@ -5,6 +5,7 @@ import { uploadToIPFS, unpinFromIPFS } from '../../composables/ipfs';
 import { useNotifications } from '../../composables/useNotifications'
 import { useBlockchainErrorHandler } from '../../composables/useBlockchainErrorHandler'
 import { parseEther } from 'ethers'
+import { useLabelsUpload } from '../../composables/useLabelsUpload';
 
 defineProps<{
   isOpen: boolean
@@ -36,6 +37,17 @@ const modelHash = ref<string>('')
 const { notifyError, notifyTransactionSuccess } = useNotifications()
 const { handleAsyncOperation } = useBlockchainErrorHandler()
 
+// 🏷️ Composable para manejo de labels
+const { 
+  labelsData, 
+  isProcessing: isProcessingLabels,
+  error: labelsError,
+  processLabelsFile,
+  uploadLabelsToIPFS,
+  generateLabelsMetadata,
+  resetLabels
+} = useLabelsUpload()
+
 // handleFileChange is implemented below with hash computation
 
 // Compute SHA-256 hex digest of the uploaded file and store in modelHash
@@ -57,6 +69,17 @@ const handleFileChange = async (e: Event) => {
     } catch (err) {
       console.warn('No se pudo calcular el hash del archivo:', err)
       modelHash.value = ''
+    }
+  }
+}
+
+const handleLabelsFileChange = async (e: Event) => {
+  const target = e.target as HTMLInputElement
+  const file = target.files && target.files[0]
+  if (file) {
+    const success = await processLabelsFile(file)
+    if (!success && labelsError.value) {
+      notifyError('Error en Labels', labelsError.value)
     }
   }
 }
@@ -106,14 +129,29 @@ const handleSubmit = async () => {
     // fallback minimal inference config if the user left it empty
     inferenceConfig = { model_type: formData.value.modelType || 'unknown' }
   }
+
+  // Procesar labels si están disponibles
+  let labelsIPFSHash: string | null = null
+  
+  if (labelsData.value.isValid) {
+    try {
+      labelsIPFSHash = await uploadLabelsToIPFS()
+      console.log('✅ Labels subidas a IPFS:', labelsIPFSHash)
+    } catch (err) {
+      console.warn('⚠️ Error procesando labels, continuando sin ellas:', err)
+      // No fallar la subida completa por un error en labels opcionales
+    }
+  }
+
   const metadata = {
     model_id: formData.value.model_id || formData.value.title,
     version: formData.value.version || '1.0',
     model_cid: modelIPFSHash,
-  model_hash: modelHash.value || '',
+    model_hash: modelHash.value || '',
     metadata_cid: '',
     description: formData.value.description,
-    inference_config: inferenceConfig
+    inference_config: inferenceConfig,
+    ...generateLabelsMetadata()
   }
 
   let metadataIPFSHash: string
@@ -172,6 +210,15 @@ const handleSubmit = async () => {
     } catch (uerr) {
       console.warn('No se pudo unpin los metadatos:', uerr)
     }
+    // Deshacer pin de labels si existen
+    if (labelsIPFSHash) {
+      try {
+        await unpinFromIPFS(labelsIPFSHash)
+        console.info('Labels unpinned:', labelsIPFSHash)
+      } catch (uerr) {
+        console.warn('No se pudo unpin las labels:', uerr)
+      }
+    }
 
     handleAsyncOperation(
       () => Promise.reject(err),
@@ -196,6 +243,7 @@ const resetForm = () => {
   }
   selectedFile.value = null
   modelHash.value = ''
+  resetLabels()
 }
 
 const handleClose = () => {
@@ -371,6 +419,64 @@ const handleClose = () => {
                 class="mt-1 w-full bg-gray-50 app-dark:bg-gray-800 rounded-md border border-gray-300 app-dark:border-gray-700 text-gray-900 app-dark:text-white px-3 py-2"
                 required
               />
+            </div>
+
+            <!-- Labels upload (optional) -->
+            <div>
+              <label class="text-gray-900 app-dark:text-white font-medium" for="labelsFile">
+                Archivo de Labels (Opcional)
+              </label>
+              <input
+                id="labelsFile"
+                type="file"
+                @change="handleLabelsFileChange"
+                accept=".json,.txt,.csv"
+                class="mt-1 w-full bg-gray-50 app-dark:bg-gray-800 rounded-md border border-gray-300 app-dark:border-gray-700 text-gray-900 app-dark:text-white px-3 py-2"
+              />
+              <p class="text-sm text-gray-500 mt-1">
+                Sube un archivo JSON, TXT o CSV con las etiquetas/categorías del modelo. 
+                Ej: ["gato", "perro", "pájaro"] o un archivo de texto con una etiqueta por línea.
+              </p>
+              
+              <!-- Preview de labels cargadas -->
+              <div v-if="labelsData.isValid" class="mt-2 p-3 bg-green-50 app-dark:bg-green-900/20 border border-green-200 app-dark:border-green-700 rounded-md">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-sm font-medium text-green-800 app-dark:text-green-200">
+                    Archivo de labels cargado: {{ labelsData.file?.name }}
+                  </span>
+                </div>
+                <div v-if="labelsData.preview" class="mt-2 text-xs text-green-700 app-dark:text-green-300 bg-green-100 app-dark:bg-green-800/30 p-2 rounded border">
+                  <strong>Vista previa:</strong><br>
+                  {{ labelsData.preview }}
+                </div>
+              </div>
+              
+              <!-- Error de labels -->
+              <div v-if="labelsError" class="mt-2 p-3 bg-red-50 app-dark:bg-red-900/20 border border-red-200 app-dark:border-red-700 rounded-md">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span class="text-sm font-medium text-red-800 app-dark:text-red-200">
+                    {{ labelsError }}
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Loading de labels -->
+              <div v-if="isProcessingLabels" class="mt-2 p-3 bg-blue-50 app-dark:bg-blue-900/20 border border-blue-200 app-dark:border-blue-700 rounded-md">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span class="text-sm font-medium text-blue-800 app-dark:text-blue-200">
+                    Procesando archivo de labels...
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div class="flex justify-end gap-3 pt-4 mt-2">

@@ -96,3 +96,14 @@ import ModelCard from '../components/ui/ModelCard.vue'
 - Todos los imports han sido actualizados a la nueva estructura
 - Los composables mantienen sus rutas relativas `../../composables/`
 - La carpeta `ui/` anterior fue eliminada y sus componentes redistribuidos
+
+
+## TODOS:
+
+- Apartado para subir labels opcionales en el componente UploadModelModal.vue.
+- Manejo de errores en el componente licensePlanCard.vue.
+- Si yo tengo un modelo en mi propiedad no necesito tener lincencias para correr una inferencia.
+- Probar las inferencias.
+- Implementar el mercado de data sets.
+- Ajustar motor de inferencia para que reciba payload standard.
+- Probar un modelo de texto.
