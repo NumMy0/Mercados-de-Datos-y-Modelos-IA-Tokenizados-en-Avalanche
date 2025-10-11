@@ -60,7 +60,7 @@ class IpfsService {
     const maxSizeBytes = this.maxDownloadSizeMB * 1024 * 1024;
 
     // Usar únicamente el gateway primario
-    const gateway = this.primaryGateway;
+    const gateway = "http://maroon-changing-sparrow-238.mypinata.cloud/ipfs/";
     const url = `${gateway}${cid}`;
 
     try {
