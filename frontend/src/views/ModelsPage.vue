@@ -22,6 +22,7 @@ import { useWallet } from '../composables/useWallet'
 import { useModels } from '../composables/useModels'
 import { useModelActions } from '../composables/useModelActions'
 import { useNotifications } from '../composables/useNotifications'
+import { useBlockchainErrorHandler } from '../composables/useBlockchainErrorHandler'
 import Header from '../components/layout/header.vue'
 import ModelsGrid from '../components/lists/ModelsGrid.vue'
 import UploadModelModal from '../components/modals/UploadModelModal.vue'
@@ -55,6 +56,9 @@ const {
 
 // 🎉 Sistema de notificaciones elegantes
 const { notifySuccess, notifyError } = useNotifications()
+
+// ⚠️ Manejador de errores blockchain
+const { handleBlockchainError } = useBlockchainErrorHandler()
 
 // ========================================
 // ESTADO DE MODALS Y LOADING
@@ -268,18 +272,19 @@ async function handleTransferModel(toAddress: string) {
 async function handleCreateLicensePlan(planData: any) {
   if (!selectedModel.value) return
   
-  const result = await createLicensePlan(selectedModel.value.id, planData)
-  
-  if (result.success) {
-    notifySuccess(
-      'Plan de Licencia Creado',
-      result.message
-    )
-  } else {
-    notifyError(
-      'Error al Crear Plan',
-      result.message
-    )
+  try {
+    const result = await createLicensePlan(selectedModel.value.id, planData)
+    if (result.success) {
+      notifySuccess(
+        'Plan de Licencia Creado',
+        result.message
+      )
+      // Recargar modelos para ver el nuevo plan
+      await loadModels()
+    }
+  } catch (err: any) {
+    console.error('Error al crear plan de licencia:', err)
+    handleBlockchainError(err, 'creación de plan de licencia')
   }
 }
 
