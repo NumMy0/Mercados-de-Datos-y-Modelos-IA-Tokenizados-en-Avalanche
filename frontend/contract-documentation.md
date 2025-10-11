@@ -196,7 +196,7 @@ await tx.wait();
 ```
 
 3) Comprar una licencia (usuario)
-
+	
 ```js
 const tx = await contract.connect(buyerSigner).buyLicense(modelId, planId, { value: priceWei });
 await tx.wait();

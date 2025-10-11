@@ -287,10 +287,47 @@ export async function hasActiveLicense(modelId: number | string, userAddress: st
     }
 
     try {
+        // Primero: si el contrato tiene la función tradicional, úsala
+        let active = false
         if (typeof (contract as any).hasActiveLicense === 'function') {
-            return await (contract as any).hasActiveLicense(modelId, userAddress)
+            active = await (contract as any).hasActiveLicense(modelId, userAddress)
+        } else {
+            // fallback a nombre alternativo
+            active = await (contract as any).checkUserLicense(modelId, userAddress)
         }
-        return await (contract as any).checkUserLicense(modelId, userAddress)
+
+        // Si ya tiene licencia activa, devolvemos true
+        if (active) return true
+
+        // Si no tiene licencia, comprobamos si el userAddress es el autor/owner del modelo
+        // Para ello intentamos llamar a getModel (si existe en el contrato)
+        try {
+            if (typeof (contract as any).getModel === 'function') {
+                const raw = await (contract as any).getModel(modelId)
+                // raw puede ser array/tuple o struct con author/owner
+                let author: any = null
+                if (raw) {
+                    if (Array.isArray(raw)) {
+                        author = raw[1] // según getModel: [id, author, name, ...]
+                    } else {
+                        author = raw.author ?? raw.owner
+                    }
+                }
+
+                // Normalizar a string
+                const authorStr = author && (typeof author.toString === 'function') ? author.toString() : String(author)
+                const userStr = userAddress && (typeof userAddress.toString === 'function') ? userAddress.toString() : String(userAddress)
+
+                if (authorStr && userStr && authorStr.toLowerCase() === userStr.toLowerCase()) {
+                    return true
+                }
+            }
+        } catch (e) {
+            // No crítico: si getModel falla, no bloqueamos la respuesta
+            console.debug('No se pudo obtener el author desde getModel en hasActiveLicense:', e)
+        }
+
+        return false
     } catch (e) {
         console.error('Error en hasActiveLicense:', e)
         return false
