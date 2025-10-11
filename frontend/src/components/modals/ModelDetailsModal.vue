@@ -147,7 +147,8 @@ const inferenceModel = computed(() => {
     id: parseInt(modelData.value.id),
     name: modelData.value.name || 'Modelo sin nombre',
     ipfsHash: modelData.value.ipfsHash || '',
-    category: modelData.value.category || 'General'
+    category: modelData.value.category || 'General',
+    tokenURI: modelData.value.tokenURI || null  // Agregado para metadatos
   }
 })
 
