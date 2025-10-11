@@ -175,6 +175,35 @@ class MetadataParser {
   }
 
   /**
+   * Valida y normaliza el campo opcional `labels` dentro de los metadatos.
+   * Acepta:
+   * - Array: ["cat","dog",...]
+   * - Object: { "0": "cat", "1": "dog" }
+   */
+  static validateLabels(labels) {
+    if (labels == null) return null;
+
+    if (Array.isArray(labels)) {
+      // Asegurar que todos los items sean strings
+      if (!labels.every(l => typeof l === 'string')) {
+        throw new Error('labels debe ser un array de strings');
+      }
+      return labels;
+    }
+
+    if (typeof labels === 'object') {
+      // keys numéricas esperadas
+      const entries = Object.entries(labels);
+      if (!entries.every(([k, v]) => !Number.isNaN(Number(k)) && typeof v === 'string')) {
+        throw new Error('labels como objeto debe mapear índices numéricos a strings');
+      }
+      return labels;
+    }
+
+    throw new Error('Formato de labels no soportado');
+  }
+
+  /**
    * Parsea la cadena JSON descargada y la valida.
    * @param {string} rawJson - La cadena de texto JSON descargada de IPFS.
    * @returns {Object} El objeto de metadatos validado.

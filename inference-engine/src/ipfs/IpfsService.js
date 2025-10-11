@@ -15,8 +15,9 @@ class IpfsService {
   constructor() {
     // Usar la nueva configuración IPFS
     const ipfsConfig = config.ipfs;
-    this.primaryGateway = ipfsConfig.primaryGateway;
-    this.gateways = [ipfsConfig.primaryGateway, ...ipfsConfig.fallbackGateways];
+  this.primaryGateway = ipfsConfig.primaryGateway;
+  // Simplificado: solo usar el gateway primario para evitar múltiples URL
+  this.gateways = [ipfsConfig.primaryGateway];
     this.downloadTimeout = ipfsConfig.downloadTimeout;
     this.maxDownloadSizeMB = ipfsConfig.maxDownloadSizeMB;
     this.pinataJWT = ipfsConfig.pinataJWT;
@@ -58,29 +59,16 @@ class IpfsService {
   async fetchFile(cid, isBinary = false) {
     const maxSizeBytes = this.maxDownloadSizeMB * 1024 * 1024;
 
-    // Intentar con cada gateway en orden
-    const gatewaysToTry = [
-      this.primaryGateway,
-      ...this.gateways.filter((g) => g !== this.primaryGateway),
-    ];
+    // Usar únicamente el gateway primario
+    const gateway = this.primaryGateway;
+    const url = `${gateway}${cid}`;
 
-    let lastError = null;
-
-    for (let i = 0; i < gatewaysToTry.length; i++) {
-      const gateway = gatewaysToTry[i];
-      const url = `${gateway}${cid}`;
-
-      try {
-        console.log(
-          `🌐 Intentando descargar ${cid} desde ${gateway} (intento ${i + 1}/${
-            gatewaysToTry.length
-          })`
-        );
+    try {
+      console.log(`🌐 Intentando descargar ${cid} desde ${gateway}`);
 
         // Preparar headers específicos para el gateway
         const headers = {
           "User-Agent": "AI-Model-Inference-Engine/1.0",
-          ...(i > 0 ? { "Cache-Control": "no-cache", Pragma: "no-cache" } : {}),
         };
 
         // Agregar autenticación para Pinata si está disponible
@@ -99,68 +87,43 @@ class IpfsService {
           ...(isBinary && { responseEncoding: null }),
         });
 
-        if (response.status !== 200) {
-          throw new Error(`Estado HTTP ${response.status}`);
-        }
-
-        // Verificar tamaño
-        const sizeBytes = isBinary
-          ? response.data.byteLength
-          : Buffer.byteLength(response.data, "utf8");
-        const sizeMB = Math.round(sizeBytes / 1024 / 1024);
-
-        if (sizeBytes > maxSizeBytes) {
-          throw new Error(
-            `Archivo excede el límite de ${this.maxDownloadSizeMB}MB (${sizeMB}MB)`
-          );
-        }
-
-        console.log(`✅ Descarga exitosa desde ${gateway} (${sizeMB}MB)`);
-
-        if (isBinary) {
-          return Buffer.from(response.data);
-        }
-
-        return response.data;
-      } catch (error) {
-        const errorMsg = error.response
-          ? `HTTP ${error.response.status}: ${error.response.statusText}`
-          : error.message;
-
-        console.warn(`⚠️ Fallo en ${gateway}: ${errorMsg}`);
-        lastError = error;
-
-        // Si es un error 404, no intentar otros gateways (el CID no existe)
-        if (error.response && error.response.status === 404) {
-          throw new Error(`CID no encontrado: ${cid}`);
-        }
-
-        // Para rate limiting (429), continuar con el siguiente gateway
-        if (error.response && error.response.status === 429) {
-          console.log(
-            `🔄 Rate limit en ${gateway}, probando siguiente gateway...`
-          );
-          continue;
-        }
-
-        // Si es el último gateway, lanzar el error
-        if (i === gatewaysToTry.length - 1) {
-          break;
-        }
-
-        // Pausa más larga para archivos grandes
-        await new Promise((resolve) => setTimeout(resolve, 2000 * (i + 1)));
+      if (response.status !== 200) {
+        throw new Error(`Estado HTTP ${response.status}`);
       }
+
+      // Verificar tamaño
+      const sizeBytes = isBinary
+        ? response.data.byteLength
+        : Buffer.byteLength(response.data, "utf8");
+      const sizeMB = Math.round(sizeBytes / 1024 / 1024);
+
+      if (sizeBytes > maxSizeBytes) {
+        throw new Error(
+          `Archivo excede el límite de ${this.maxDownloadSizeMB}MB (${sizeMB}MB)`
+        );
+      }
+
+      console.log(`✅ Descarga exitosa desde ${gateway} (${sizeMB}MB)`);
+
+      if (isBinary) {
+        return Buffer.from(response.data);
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMsg = error.response
+        ? `HTTP ${error.response.status}: ${error.response.statusText}`
+        : error.message;
+
+      console.warn(`⚠️ Fallo en ${gateway}: ${errorMsg}`);
+
+      // Manejo simplificado: si es 404 o 429 devolvemos error inmediato
+      if (error.response && error.response.status === 404) {
+        throw new Error(`CID no encontrado: ${cid}`);
+      }
+
+      throw new Error(`Fallo al descargar ${cid} desde gateway ${gateway}: ${errorMsg}`);
     }
-
-    // Si llegamos aquí, todos los gateways fallaron
-    const errorMsg = lastError?.response
-      ? `${lastError.response.status}: ${lastError.response.statusText}`
-      : lastError?.message || "Error desconocido";
-
-    throw new Error(
-      `Fallo en todos los gateways IPFS para CID ${cid}. Último error: ${errorMsg}`
-    );
   }
 
   /**

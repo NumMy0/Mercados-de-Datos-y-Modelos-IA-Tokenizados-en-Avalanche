@@ -124,8 +124,26 @@ class ModelLoader {
     const modelCid = metadata.model_cid;
     const modelHash = metadata.model_hash;
     const modelId = metadata.model_id;
-    //  ➡️ Nuevo: Extraer el labels_cid de la metadata
-    const labelsCid = metadata.labels_cid; // Asumiendo que el campo se llama labels_cid
+    // Preferir labels embebidas en metadata si existen
+    let labelsCid = metadata.labels_cid; // Asumiendo que el campo se llama labels_cid
+    let labels = null;
+
+    // Si la metadata trae labels embebidas, preferirlas
+    try {
+      if (metadata.labels) {
+        const MetadataParser = require('../ipfs/MetadataParser');
+        try {
+          labels = MetadataParser.validateLabels(metadata.labels);
+          logger.info('Usando labels embebidas dentro de la metadata');
+        } catch (labErr) {
+          logger.warn('Labels embebidas inválidas, se intentará usar labels_cid si está presente:', labErr.message);
+          labels = null;
+        }
+      }
+    } catch (e) {
+      // No crítico
+      logger.debug('No se pudo validar labels embebidas:', e.message);
+    }
 
     logger.info(
       `Descargando archivo ONNX (CID: ${modelCid}) para el modelo ${modelId}...`
@@ -156,27 +174,25 @@ class ModelLoader {
       logger.warn(
         `Verificación de hash omitida para ${modelId} (hash no disponible).`
       );
-    } // 5. Cargar Labels desde IPFS
-    let labels = null;
-    if (labelsCid) {
-      logger.info(`Descargando archivo de etiquetas (CID: ${labelsCid})...`);
-      // Usamos fetchFile con isBinary=false para obtener la cadena JSON de etiquetas
-      const rawLabelsJson = await IpfsService.fetchFile(labelsCid, false);
+    }
 
-      try {
-        labels = JSON.parse(rawLabelsJson);
-        logger.info("Etiquetas cargadas exitosamente desde IPFS.");
-      } catch (e) {
-        logger.error(
-          `Fallo al parsear JSON de etiquetas desde CID ${labelsCid}: ${e.message}`
-        );
-        // Opcional: Podrías optar por un fallback a null en lugar de fallar
-        labels = null;
+    // 5. Cargar Labels desde IPFS sólo si no se obtuvieron embebidas
+    if (!labels) {
+      if (labelsCid) {
+        logger.info(`Descargando archivo de etiquetas (CID: ${labelsCid})...`);
+        // Usamos fetchFile con isBinary=false para obtener la cadena JSON de etiquetas
+        try {
+          const rawLabelsJson = await IpfsService.fetchFile(labelsCid, false);
+          labels = JSON.parse(rawLabelsJson);
+          console.log(labels);
+          logger.info('Etiquetas cargadas exitosamente desde IPFS.');
+        } catch (e) {
+          logger.error(`Fallo al parsear JSON de etiquetas desde CID ${labelsCid}: ${e.message}`);
+          labels = null;
+        }
+      } else {
+        logger.warn(`Modelo ${modelId} no especifica labels_cid y no tiene labels embebidas. Usando índices.`);
       }
-    } else {
-      logger.warn(
-        `Modelo ${modelId} no especifica labels_cid. Usando índices.`
-      );
     }
 
     // 6. Cargar en ONNX Runtime y Caché (Reutiliza el método base)
