@@ -171,41 +171,53 @@ class IpfsService {
    */
   async getMetadata(metadataCid) {
     console.log(`🔍 getMetadata llamado con CID: ${metadataCid}`);
-    console.log(`🔍 Tipo de CID: ${typeof metadataCid}, Longitud: ${metadataCid?.length}`);
-    
+    console.log(
+      `🔍 Tipo de CID: ${typeof metadataCid}, Longitud: ${metadataCid?.length}`
+    );
+
     try {
       // Intentar descargar como texto (JSON)
       console.log(`📥 Descargando contenido desde IPFS...`);
       const rawContent = await this.fetchFile(metadataCid, false);
-      console.log(`📥 Contenido descargado, tipo: ${typeof rawContent}, longitud: ${rawContent?.length}`);
+      console.log(
+        `📥 Contenido descargado, tipo: ${typeof rawContent}, longitud: ${
+          rawContent?.length
+        }`
+      );
       console.log(`📥 Primeros 100 caracteres:`, rawContent?.substring(0, 100));
-      
+
       // Verificar si el contenido es un archivo de modelo binario
       if (MetadataParser.isModelFile(rawContent)) {
-        console.warn(`⚠️ ADVERTENCIA: El CID ${metadataCid} apunta a un archivo de modelo, no a metadatos.`);
+        console.warn(
+          `⚠️ ADVERTENCIA: El CID ${metadataCid} apunta a un archivo de modelo, no a metadatos.`
+        );
         console.warn(`⚠️ Creando metadatos de fallback para compatibilidad.`);
-        
+
         // Crear metadatos de fallback basados en configuración por defecto
         return this.createFallbackMetadata(metadataCid);
       }
-      
+
       console.log(`✅ El CID ${metadataCid} apunta a metadatos JSON válidos`);
-      
+
       // Es un archivo JSON válido, parsearlo normalmente
       const metadata = MetadataParser.parse(rawContent);
       console.log(`✅ Metadatos parseados exitosamente:`, metadata);
-      
+
       return metadata;
-      
     } catch (error) {
       console.error(`❌ Error en getMetadata para CID ${metadataCid}:`, error);
-      
+
       // Si falla el parseo JSON, probablemente es un archivo binario
-      if (error.message.includes('JSON') || error.message.includes('formato JSON')) {
-        console.warn(`⚠️ El archivo en CID ${metadataCid} no es JSON válido, creando metadatos de fallback.`);
+      if (
+        error.message.includes("JSON") ||
+        error.message.includes("formato JSON")
+      ) {
+        console.warn(
+          `⚠️ El archivo en CID ${metadataCid} no es JSON válido, creando metadatos de fallback.`
+        );
         return this.createFallbackMetadata(metadataCid);
       }
-      
+
       // Re-lanzar otros errores
       throw error;
     }
@@ -218,12 +230,14 @@ class IpfsService {
    */
   createFallbackMetadata(modelCid) {
     console.log(`⚠️ Creando metadatos de fallback para CID: ${modelCid}`);
-    console.log(`🔍 CID tipo: ${typeof modelCid}, longitud: ${modelCid?.length}`);
-    
+    console.log(
+      `🔍 CID tipo: ${typeof modelCid}, longitud: ${modelCid?.length}`
+    );
+
     const fallbackMetadata = {
       model_id: `fallback_model_${Date.now()}`,
       version: "1.0.0",
-      model_cid: modelCid,  // Usar el CID real del modelo
+      model_cid: modelCid, // Usar el CID real del modelo
       model_hash: "unknown", // Hash desconocido para modelos legacy
       labels_cid: null,
       description: "Modelo legacy sin metadatos específicos",
@@ -234,8 +248,8 @@ class IpfsService {
         color_format: "RGB",
         output_config: {
           type: "softmax",
-          topk: 5
-        }
+          topk: 5,
+        },
       },
       // Metadata de compatibilidad
       name: "Modelo Legacy",
@@ -243,9 +257,9 @@ class IpfsService {
       license: "Unknown",
       created_at: new Date().toISOString(),
       framework: "ONNX",
-      is_fallback: true // Flag para identificar metadatos de fallback
+      is_fallback: true, // Flag para identificar metadatos de fallback
     };
-    
+
     console.log(`✅ Metadatos de fallback creados:`, fallbackMetadata);
     return fallbackMetadata;
   }
