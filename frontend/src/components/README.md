@@ -100,10 +100,7 @@ import ModelCard from '../components/ui/ModelCard.vue'
 
 ## TODOS:
 
-- Apartado para subir labels opcionales en el componente UploadModelModal.vue.
-- Manejo de errores en el componente licensePlanCard.vue.
-- Si yo tengo un modelo en mi propiedad no necesito tener lincencias para correr una inferencia.
-- Probar las inferencias.
-- Implementar el mercado de data sets.
-- Ajustar motor de inferencia para que reciba payload standard.
-- Probar un modelo de texto.
+-   Probar las inferencias. 
+-   Implementar el mercado de data sets. (No se sabe.)
+-   Ajustar motor de inferencia para que reciba payload standard. (En proceso.)
+-   Probar un modelo de texto. (Demasiado proceso)

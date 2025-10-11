@@ -96,7 +96,7 @@ const renewLicenseData = ref<{
   availablePlans: any[]
 } | null>(null)
 
-const { notifyError, notifyInfo } = useNotifications()
+const { notifyError, notifyInfo, notifySuccess } = useNotifications()
 
 // ========================================
 // COMPUTED PROPERTIES
@@ -223,9 +223,9 @@ function handleRenewSuccess(planId: number) {
 async function handleCopyAddress() {
   const success = await copyAddressToClipboard()
   if (success) {
-    alert('Dirección copiada al portapapeles')
+    notifySuccess('Dirección Copiada', 'La dirección se ha copiado al portapapeles')
   } else {
-    alert('Error al copiar dirección')
+    notifyError('Error al Copiar', 'No se pudo copiar la dirección al portapapeles')
   }
 }
 
@@ -243,24 +243,36 @@ async function handleCreateLicensePlan(planData: any) {
   if (!selectedModel.value) return
   
   const result = await createLicensePlan(selectedModel.value.id, planData)
-  alert(result.message)
+  if (result.success) {
+    notifySuccess('Plan Creado', result.message)
+  } else {
+    notifyError('Error al Crear Plan', result.message)
+  }
 }
 
 async function handleSetPlanActive(planId: number, active: boolean) {
   if (!selectedModel.value) return
   const result = await setPlanActive(selectedModel.value.id, planId, active)
-  alert(result.message)
+  if (result.success) {
+    notifySuccess(
+      active ? 'Plan Activado' : 'Plan Desactivado', 
+      result.message
+    )
+  } else {
+    notifyError('Error al Cambiar Estado', result.message)
+  }
 }
 
 async function handleBuyLicense(planId: number) {
   if (!selectedModel.value) return
   
   const result = await buyLicense(selectedModel.value.id, planId)
-  alert(result.message)
-  
-  // Recargar licencias si la compra fue exitosa
   if (result.success) {
+    notifySuccess('Licencia Adquirida', result.message)
+    // Recargar licencias si la compra fue exitosa
     await loadUserLicenses()
+  } else {
+    notifyError('Error al Comprar Licencia', result.message)
   }
 }
 
@@ -271,9 +283,9 @@ async function handleSetForSale(price: string) {
   
   if (result.success) {
     updateModel(selectedModel.value.id, result.updates!)
-    alert(result.message)
+    notifySuccess('Modelo en Venta', result.message)
   } else {
-    alert(result.message)
+    notifyError('Error al Poner en Venta', result.message)
   }
 }
 
@@ -284,9 +296,9 @@ async function handleCancelSale() {
   
   if (result.success) {
     updateModel(selectedModel.value.id, result.updates!)
-    alert(result.message)
+    notifySuccess('Venta Cancelada', result.message)
   } else {
-    alert(result.message)
+    notifyError('Error al Cancelar Venta', result.message)
   }
 }
 
@@ -303,9 +315,9 @@ async function handleTransferModel(toAddress: string) {
     // Recargar modelos para actualizar la lista
     await loadModels()
     
-    alert(result.message)
+    notifySuccess('Modelo Transferido', result.message)
   } else {
-    alert(result.message)
+    notifyError('Error al Transferir', result.message)
   }
 }
 

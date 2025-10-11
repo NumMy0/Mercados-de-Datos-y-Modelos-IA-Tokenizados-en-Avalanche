@@ -28,9 +28,15 @@ module.exports = {
   // Logging
   logLevel: process.env.LOG_LEVEL || "info",
 
-  // NUEVA CONFIGURACIÓN IPFS
-  IPFS_GATEWAY_URL:
-    process.env.IPFS_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs/",
-  IPFS_DOWNLOAD_TIMEOUT: parseInt(process.env.IPFS_DOWNLOAD_TIMEOUT) || 30000,
-  MAX_DOWNLOAD_SIZE_MB: parseInt(process.env.MAX_DOWNLOAD_SIZE_MB) || 50,
+  // NUEVA CONFIGURACIÓN IPFS CON MÚLTIPLES GATEWAYS
+  IPFS_GATEWAYS: process.env.IPFS_GATEWAYS?.split(",") || [
+    "https://ipfs.io/ipfs/",
+    "https://dweb.link/ipfs/",
+    "https://gateway.ipfs.io/ipfs/",
+    "https://4everland.io/ipfs/",
+    "https://w3s.link/ipfs/",
+  ],
+  IPFS_GATEWAY_URL: process.env.IPFS_GATEWAY_URL || "https://ipfs.io/ipfs/",
+  IPFS_DOWNLOAD_TIMEOUT: parseInt(process.env.IPFS_DOWNLOAD_TIMEOUT) || 60000, // Aumentado a 60s
+  MAX_DOWNLOAD_SIZE_MB: parseInt(process.env.MAX_DOWNLOAD_SIZE_MB) || 150, // Aumentado a 150MB
 };

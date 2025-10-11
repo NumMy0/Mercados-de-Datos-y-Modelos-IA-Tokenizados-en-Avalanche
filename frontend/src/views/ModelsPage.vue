@@ -21,6 +21,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useWallet } from '../composables/useWallet'
 import { useModels } from '../composables/useModels'
 import { useModelActions } from '../composables/useModelActions'
+import { useNotifications } from '../composables/useNotifications'
 import { uploadModelBlockchain } from '../composables/blockchain'
 import Header from '../components/layout/header.vue'
 import ModelsGrid from '../components/lists/ModelsGrid.vue'
@@ -53,6 +54,9 @@ const {
   setPlanActive,
   buyLicense,
 } = useModelActions()
+
+// 🎉 Sistema de notificaciones elegantes
+const { notifySuccess, notifyError } = useNotifications()
 
 // ========================================
 // ESTADO DE MODALS Y LOADING
@@ -165,12 +169,19 @@ async function handleSubmitModel(formData: any) {
     // Recargar modelos desde blockchain
     await loadModels()
     
-    alert(`Modelo "${formData.title}" subido exitosamente a la blockchain!`)
+    notifySuccess(
+      'Modelo Subido Exitosamente',
+      `Tu modelo "${formData.title}" ha sido subido a la blockchain correctamente`
+    )
     
   } catch (error) {
     console.error('❌ Error subiendo modelo:', error)
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
-    alert(`Error al subir modelo: ${errorMessage}`)
+    
+    notifyError(
+      'Error al Subir Modelo',
+      `No se pudo subir el modelo: ${errorMessage}`
+    )
     
     // Reabrir modal en caso de error
     isUploadModalOpen.value = true
@@ -194,9 +205,16 @@ async function handleBuyModel() {
     // Cerrar modal y mostrar mensaje
     isBuyModalOpen.value = false
     selectModel(null)
-    alert(result.message)
+    
+    notifySuccess(
+      'Compra Exitosa',
+      result.message
+    )
   } else {
-    alert(result.message)
+    notifyError(
+      'Error en la Compra',
+      result.message
+    )
   }
 }
 
@@ -210,9 +228,15 @@ async function handleSetForSale(price: string) {
   
   if (result.success) {
     updateModel(selectedModel.value.id, result.updates!)
-    alert(result.message)
+    notifySuccess(
+      'Modelo en Venta',
+      result.message
+    )
   } else {
-    alert(result.message)
+    notifyError(
+      'Error al Poner en Venta',
+      result.message
+    )
   }
 }
 
@@ -226,9 +250,15 @@ async function handleCancelSale() {
   
   if (result.success) {
     updateModel(selectedModel.value.id, result.updates!)
-    alert(result.message)
+    notifySuccess(
+      'Venta Cancelada',
+      result.message
+    )
   } else {
-    alert(result.message)
+    notifyError(
+      'Error al Cancelar Venta',
+      result.message
+    )
   }
 }
 
@@ -246,9 +276,16 @@ async function handleTransferModel(toAddress: string) {
     // Cerrar modal ya que el usuario ya no es owner
     isDetailsModalOpen.value = false
     selectModel(null)
-    alert(result.message)
+    
+    notifySuccess(
+      'Modelo Transferido',
+      result.message
+    )
   } else {
-    alert(result.message)
+    notifyError(
+      'Error en Transferencia',
+      result.message
+    )
   }
 }
 
@@ -260,13 +297,36 @@ async function handleCreateLicensePlan(planData: any) {
   if (!selectedModel.value) return
   
   const result = await createLicensePlan(selectedModel.value.id, planData)
-  alert(result.message)
+  
+  if (result.success) {
+    notifySuccess(
+      'Plan de Licencia Creado',
+      result.message
+    )
+  } else {
+    notifyError(
+      'Error al Crear Plan',
+      result.message
+    )
+  }
 }
 
 async function handleSetPlanActive(planId: number, active: boolean) {
   if (!selectedModel.value) return
   const result = await setPlanActive(selectedModel.value.id, planId, active)
-  alert(result.message)
+  
+  if (result.success) {
+    const action = active ? 'activado' : 'desactivado'
+    notifySuccess(
+      `Plan ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+      result.message
+    )
+  } else {
+    notifyError(
+      'Error al Cambiar Estado del Plan',
+      result.message
+    )
+  }
 }
 
 async function handleBuyLicense(planId: number) {
@@ -275,7 +335,10 @@ async function handleBuyLicense(planId: number) {
   const result = await buyLicense(selectedModel.value.id, planId)
   
   if (result.success) {
-    alert(result.message)
+    notifySuccess(
+      'Licencia Adquirida',
+      result.message
+    )
     
     // Cerrar modal de compra si está abierto
     if (isBuyModalOpen.value) {
@@ -283,7 +346,10 @@ async function handleBuyLicense(planId: number) {
       selectModel(null)
     }
   } else {
-    alert(result.message)
+    notifyError(
+      'Error al Comprar Licencia',
+      result.message
+    )
   }
 }
 </script>
@@ -363,6 +429,7 @@ async function handleBuyLicense(planId: number) {
       v-if="isBuyModalOpen"
       :is-open="isBuyModalOpen"
       :model="selectedModel"
+      :user-address="account"
       @close="handleCloseBuyModal"
       @buy-model="handleBuyModel"
       @buy-license="handleBuyLicense"
