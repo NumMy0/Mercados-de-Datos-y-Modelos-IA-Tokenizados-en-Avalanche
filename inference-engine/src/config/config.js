@@ -31,13 +31,15 @@ module.exports = {
   // CONFIGURACIÓN IPFS MEJORADA CON TU GATEWAY PERSONAL
   ipfs: {
     // Tu gateway principal (Pinata)
+    // Se admite leer la configuración desde variables de entorno del backend
+    // (`IPFS_GATEWAY_PRIMARY`) o desde la .env del frontend (`VITE_PINATA_GATEWAY`).
     primaryGateway:
-      process.env.IPFS_GATEWAY_PRIMARY ||
-      "https://magenta-used-firefly-552.mypinata.cloud/ipfs/",
+      process.env.IPFS_GATEWAY_PRIMARY || process.env.VITE_PINATA_GATEWAY ||
+      "https://ipfs.io/ipfs/",
 
     // Gateways de respaldo en orden de prioridad
     fallbackGateways: [
-      process.env.IPFS_GATEWAY_FALLBACK_1 ||
+      process.env.IPFS_GATEWAY_FALLBACK_1 || process.env.VITE_PINATA_GATEWAY ||
         "https://gateway.pinata.cloud/ipfs/",
       process.env.IPFS_GATEWAY_FALLBACK_2 || "https://ipfs.io/ipfs/",
       process.env.IPFS_GATEWAY_FALLBACK_3 || "https://dweb.link/ipfs/",
@@ -68,6 +70,7 @@ module.exports = {
     downloadTimeout: parseInt(process.env.DOWNLOAD_TIMEOUT_MS) || 60000,
 
     // Configuración de autenticación para Pinata (opcional)
-    pinataJWT: process.env.PINATA_JWT || null,
+  // Soporta PINATA_JWT (servidor) o VITE_PINATA_JWT (copiado del frontend .env)
+  pinataJWT: process.env.PINATA_JWT || process.env.VITE_PINATA_JWT || null,
   },
 };
