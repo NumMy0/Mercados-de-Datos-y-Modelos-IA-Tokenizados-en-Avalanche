@@ -76,12 +76,6 @@ const truncateAddress = (address: string) => {
             Modelos
           </button>
           <button
-            @click="navigateTo('/data')"
-            class="cursor-pointer px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
-          >
-            Datos
-          </button>
-          <button
             v-if="isConnected"
             @click="navigateTo('/profile')"
             class="cursor-pointer px-3 py-2 text-sm lg:text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
@@ -133,12 +127,6 @@ const truncateAddress = (address: string) => {
             class="block w-full text-left px-3 py-2 text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
           >
             Modelos
-          </button>
-          <button
-            @click="navigateTo('/data')"
-            class="block w-full text-left px-3 py-2 text-base text-gray-900 rounded hover:bg-gray-100 app-dark:text-white app-dark:hover:bg-gray-700 transition-colors duration-200"
-          >
-            Datos
           </button>
           <button
             v-if="isConnected"
