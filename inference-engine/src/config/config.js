@@ -34,8 +34,7 @@ module.exports = {
     // Se admite leer la configuración desde variables de entorno del backend
     // (`IPFS_GATEWAY_PRIMARY`) o desde la .env del frontend (`VITE_PINATA_GATEWAY`).
     primaryGateway:
-      process.env.IPFS_GATEWAY_PRIMARY || process.env.VITE_PINATA_GATEWAY ||
-      "https://ipfs.io/ipfs/",
+      "https://gateway.pinata.cloud/ipfs/",
 
     // Gateways de respaldo en orden de prioridad
     fallbackGateways: [

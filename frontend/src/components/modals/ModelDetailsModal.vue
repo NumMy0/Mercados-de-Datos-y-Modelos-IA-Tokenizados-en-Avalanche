@@ -144,11 +144,11 @@ const hasForSalePrice = computed(() =>
 const inferenceModel = computed(() => {
   if (!modelData.value) return null
   return {
-    id: parseInt(modelData.value.id),
+    id: parseInt(String(modelData.value.id), 10) || 0,
     name: modelData.value.name || 'Modelo sin nombre',
     ipfsHash: modelData.value.ipfsHash || '',
     category: modelData.value.category || 'General',
-    tokenURI: modelData.value.tokenURI || null  // Agregado para metadatos
+    tokenURI: modelData.value.tokenURI ?? undefined  // Agregado para metadatos (undefined when absent)
   }
 })
 
