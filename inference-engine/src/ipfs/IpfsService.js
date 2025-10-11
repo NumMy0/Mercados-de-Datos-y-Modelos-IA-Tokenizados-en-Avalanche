@@ -147,28 +147,62 @@ class IpfsService {
           rawContent?.length
         }`
       );
-      console.log(`📥 Primeros 100 caracteres:`, rawContent?.substring(0, 100));
-
-      // Verificar si el contenido es un archivo de modelo binario
-      if (MetadataParser.isModelFile(rawContent)) {
-        console.warn(
-          `⚠️ ADVERTENCIA: El CID ${metadataCid} apunta a un archivo de modelo, no a metadatos.`
-        );
-        console.warn(`⚠️ Creando metadatos de fallback para compatibilidad.`);
-
-        // Crear metadatos de fallback basados en configuración por defecto
-        return this.createFallbackMetadata(metadataCid);
-      }
-
-      console.log(`✅ El CID ${metadataCid} apunta a metadatos JSON válidos`);
+      console.log(`📥 Informacion Descargada:`, rawContent);
 
       // Es un archivo JSON válido, parsearlo normalmente
-      const metadata = MetadataParser.parse(rawContent);
-      console.log(`✅ Metadatos parseados exitosamente:`, metadata);
+      const parsed = MetadataParser.parse(rawContent);
+
+      console.log(`🔍 Metadatos parseados:`, parsed);
+
+      // Normalizar campos comunes y proveer defaults razonables
+      const normalizeCid = (val) => {
+        if (!val) return null;
+        let s = String(val).trim();
+        // Quitar esquema ipfs:// y prefijos /ipfs/
+        s = s.replace(/^ipfs:\/\//i, "");
+        s = s.replace(/^\/ipfs\//i, "");
+        s = s.replace(/^ipfs\//i, "");
+        // eliminar slashes al inicio
+        s = s.replace(/^\/+/, "");
+        return s;
+      };
+
+      const metadata = Object.assign({}, parsed);
+
+      // Normalizar model_cid y labels_cid si vienen con prefijos
+      metadata.model_cid = metadata.model_cid || metadata.modelCID || metadata.modelCid || null;
+      metadata.model_cid = normalizeCid(metadata.model_cid);
+
+      metadata.labels_cid = metadata.labels_cid || metadata.labelsCID || metadata.labelsCid || null;
+      metadata.labels_cid = normalizeCid(metadata.labels_cid);
+
+      // Asegurar model_hash
+      metadata.model_hash = metadata.model_hash || metadata.modelHash || "unknown";
+
+      // inference_config debería existir (MetadataParser.validate ya lo comprobó)
+      metadata.inference_config = metadata.inference_config || metadata.inferenceConfig || null;
+
+      // Campos opcionales que pueden ayudar al loader
+      metadata.name = metadata.name || metadata.title || null;
+      metadata.author = metadata.author || metadata.creator || null;
+      metadata.license = metadata.license || null;
+      metadata.description = metadata.description || null;
+      metadata.version = metadata.version || null;
+      metadata.created_at = metadata.created_at || new Date().toISOString();
+      metadata.size_bytes = metadata.size_bytes || metadata.size || null;
+      metadata.framework = metadata.framework || null;
+      metadata.opset_version = metadata.opset_version || metadata.opset || null;
+
+      console.log(`✅ Metadatos parseados y normalizados:`, {
+        model_id: metadata.model_id,
+        model_cid: metadata.model_cid,
+        model_hash: metadata.model_hash,
+        labels_cid: metadata.labels_cid,
+      });
 
       return metadata;
     } catch (error) {
-      console.error(`❌ Error en getMetadata para CID ${metadataCid}:`, error);
+      console.error(`❌ Error en getMetadata para CID ${model_cid}:`, error);
 
       // Si falla el parseo JSON, probablemente es un archivo binario
       if (

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useNotifications } from '../../composables/useNotifications'
 import { useBlockchainErrorHandler } from '../../composables/useBlockchainErrorHandler'
 import { buyLicense } from '../../composables/blockchain'
@@ -96,6 +96,31 @@ const formatDuration = (days: number) => {
   if (days < 365) return `${Math.round(days / 30)} meses`
   return `${Math.round(days / 365)} años`
 }
+
+// Gestión del scroll del body
+const lockBodyScroll = () => {
+  document.body.classList.add('modal-open')
+  document.body.style.overflow = 'hidden'
+}
+
+const unlockBodyScroll = () => {
+  document.body.classList.remove('modal-open')
+  document.body.style.overflow = ''
+}
+
+// Control del scroll cuando se abre/cierra el modal
+watch(() => props.isOpen, (isOpen) => {
+  if (isOpen) {
+    lockBodyScroll()
+  } else {
+    unlockBodyScroll()
+  }
+})
+
+// Limpiar al desmontar el componente
+onUnmounted(() => {
+  unlockBodyScroll()
+})
 </script>
 
 <template>

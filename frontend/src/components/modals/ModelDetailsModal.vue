@@ -13,7 +13,7 @@
 -->
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import InferenceModal from './InferenceModal.vue'
 import ModelDetailsTab from '../tabs/ModelDetailsTab.vue'
 import LicenseManagementTab from '../tabs/LicenseManagementTab.vue'
@@ -442,6 +442,17 @@ const closeInferenceModal = () => {
   isInferenceModalOpen.value = false
 }
 
+// Gestión del scroll del body
+const lockBodyScroll = () => {
+  document.body.classList.add('modal-open')
+  document.body.style.overflow = 'hidden'
+}
+
+const unlockBodyScroll = () => {
+  document.body.classList.remove('modal-open')
+  document.body.style.overflow = ''
+}
+
 // ========================================
 // WATCHERS
 // ========================================
@@ -450,6 +461,9 @@ watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     void loadModelData()
     activeTab.value = 'details'
+    lockBodyScroll()
+  } else {
+    unlockBodyScroll()
   }
 })
 
@@ -458,6 +472,11 @@ watch(() => props.modelId, (newId) => {
     void loadModelData()
   }
 }, { immediate: true })
+
+// Limpiar al desmontar el componente
+onUnmounted(() => {
+  unlockBodyScroll()
+})
 
 </script>
 
@@ -640,5 +659,24 @@ watch(() => props.modelId, (newId) => {
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
+}
+
+/* Custom scrollbar */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.5);
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.7);
 }
 </style>
