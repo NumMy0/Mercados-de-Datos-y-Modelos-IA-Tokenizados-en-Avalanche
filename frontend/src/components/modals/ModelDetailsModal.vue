@@ -148,11 +148,7 @@ const inferenceModel = computed(() => {
     name: modelData.value.name || 'Modelo sin nombre',
     ipfsHash: modelData.value.ipfsHash || '',
     category: modelData.value.category || 'General',
-<<<<<<< HEAD
-    tokenURI: modelData.value.tokenURI || undefined  // Usar undefined en lugar de null
-=======
     tokenURI: modelData.value.tokenURI ?? undefined  // Agregado para metadatos (undefined when absent)
->>>>>>> 7a20b9ecab6b3df60f53b2190569e3eea565b5bd
   }
 })
 
