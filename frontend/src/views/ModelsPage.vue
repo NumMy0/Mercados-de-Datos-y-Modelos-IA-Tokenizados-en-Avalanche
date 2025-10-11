@@ -22,13 +22,11 @@ import { useWallet } from '../composables/useWallet'
 import { useModels } from '../composables/useModels'
 import { useModelActions } from '../composables/useModelActions'
 import { useNotifications } from '../composables/useNotifications'
-import { uploadModelBlockchain } from '../composables/blockchain'
 import Header from '../components/layout/header.vue'
 import ModelsGrid from '../components/lists/ModelsGrid.vue'
 import UploadModelModal from '../components/modals/UploadModelModal.vue'
 import ModelDetailsModal from '../components/modals/ModelDetailsModal.vue'
-import BuyModelModal from '../components/modals/BuyModelModal.vue'
-import { ethers } from 'ethers' 
+import BuyModelModal from '../components/modals/BuyModelModal.vue' 
 
 // ========================================
 // COMPOSABLES
@@ -143,48 +141,22 @@ function handleViewDetails(modelId: number) {
 
 /**
  * Maneja la subida de un nuevo modelo
- * ✅ IMPLEMENTADO: Conecta con blockchain real usando uploadModelBlockchain()
+ * ✅ ACTUALIZADO: El modal ya maneja todo el proceso de subida
  */
 async function handleSubmitModel(formData: any) {
-  console.log('Modelo a subir:', formData)
+  console.log('✅ Confirmación de modelo subido exitosamente:', formData.title)
+  
+  // El modal ya manejó toda la subida y se cerró automáticamente
+  // Solo necesitamos recargar la lista
+  isUploadingModel.value = true
   
   try {
-    // Cerrar modal y activar estado de loading
-    isUploadModalOpen.value = false
-    isUploadingModel.value = true
-    
-    // Convertir precio a wei
-    const priceInWei = ethers.parseEther(formData.price.toString())
-    
-    // ✅ Subir a blockchain real
-    const receipt = await uploadModelBlockchain(
-      formData.title,           // name
-      formData.ipfsHash || '',  // ipfsHash (si tienes IPFS implementado)
-      priceInWei,              // basePrice en wei
-      formData.tokenURI || ''   // tokenURI (metadatos)
-    )
-    
-    console.log('✅ Modelo subido a blockchain:', receipt)
-    
-    // Recargar modelos desde blockchain
+    console.log('🔄 Recargando lista de modelos...')
     await loadModels()
-    
-    notifySuccess(
-      'Modelo Subido Exitosamente',
-      `Tu modelo "${formData.title}" ha sido subido a la blockchain correctamente`
-    )
-    
+    console.log('✅ Lista actualizada')
   } catch (error) {
-    console.error('❌ Error subiendo modelo:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
-    
-    notifyError(
-      'Error al Subir Modelo',
-      `No se pudo subir el modelo: ${errorMessage}`
-    )
-    
-    // Reabrir modal en caso de error
-    isUploadModalOpen.value = true
+    console.error('❌ Error recargando modelos:', error)
+    notifyError('Error', 'No se pudo recargar la lista de modelos')
   } finally {
     isUploadingModel.value = false
   }
