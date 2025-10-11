@@ -100,7 +100,4 @@ import ModelCard from '../components/ui/ModelCard.vue'
 
 ## TODOS:
 
--   Probar las inferencias. 
--   Implementar el mercado de data sets. (No se sabe.)
--   Ajustar motor de inferencia para que reciba payload standard. (En proceso.)
--   Probar un modelo de texto. (Demasiado proceso)
+- Subir una licencia hay un bug en donde aparece que la licencia no se pudo crear pero si se crea y después sale la alerta de aceptación. 

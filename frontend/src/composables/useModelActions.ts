@@ -113,8 +113,9 @@ export function useModelActions() {
     try {
       console.log('setModelForSale:', { modelId, price })
       
-      // Convertir precio a Wei
-      const priceWei = ethers.parseEther(price)
+      // Convertir precio a Wei (asegurar que sea string)
+      const priceStr = String(price)
+      const priceWei = ethers.parseEther(priceStr)
       
       // Ejecutar venta on-chain
       const receipt = await setForSaleBlockchain(modelId, priceWei)
@@ -225,33 +226,25 @@ export function useModelActions() {
    * @returns Resultado de la operación
    */
   async function createLicensePlan(modelId: number, planData: any) {
-    try {
-      console.log('createLicensePlan:', planData)
-      
-      // Convertir precio a Wei
-      const priceWei = ethers.parseEther(planData.price)
-      
-      // Ejecutar creación de plan on-chain
-      const receipt = await createLicensePlanBlockchain(
-        modelId, 
-        planData.name, 
-        priceWei, 
-        planData.duration
-      )
-      console.log('Plan de licencia creado, receipt:', receipt)
-      
-      return {
-        success: true,
-        receipt,
-        message: `Plan de licencia "${planData.name}" creado exitosamente!`,
-      }
-    } catch (err) {
-      console.error('Error al crear plan de licencia:', err)
-      return {
-        success: false,
-        error: err,
-        message: 'Error al crear plan de licencia. Revisa la consola.',
-      }
+    console.log('createLicensePlan:', planData)
+    
+    // Convertir precio a Wei (asegurar que sea string)
+    const priceStr = String(planData.price)
+    const priceWei = ethers.parseEther(priceStr)
+    
+    // Ejecutar creación de plan on-chain
+    const receipt = await createLicensePlanBlockchain(
+      modelId, 
+      planData.name, 
+      priceWei, 
+      planData.duration
+    )
+    console.log('Plan de licencia creado, receipt:', receipt)
+    
+    return {
+      success: true,
+      receipt,
+      message: `Plan de licencia "${planData.name}" creado exitosamente!`,
     }
   }
 
@@ -311,6 +304,10 @@ export function useModelActions() {
       if (typeof price === 'string') {
         // Si es string, asumir que está en AVAX y convertir a Wei
         priceWei = ethers.parseEther(price)
+      } else if (typeof price === 'number') {
+        // Si es number, convertir a string primero
+        const priceStr = String(price)
+        priceWei = ethers.parseEther(priceStr)
       } else {
         // Si ya es bigint, usar directamente
         priceWei = price

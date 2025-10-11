@@ -28,6 +28,7 @@ import { useModels } from '../composables/useModels'
 import { useUserProfile } from '../composables/useUserProfile'
 import { useModelActions } from '../composables/useModelActions'
 import { useNotifications } from '../composables/useNotifications'
+import { useBlockchainErrorHandler } from '../composables/useBlockchainErrorHandler'
 import { getModelById } from '../composables/blockchain'
 import Header from '../components/layout/header.vue'
 import ProfileHeader from '../components/layout/ProfileHeader.vue'
@@ -97,6 +98,9 @@ const renewLicenseData = ref<{
 } | null>(null)
 
 const { notifyError, notifyInfo, notifySuccess } = useNotifications()
+
+// ⚠️ Manejador de errores blockchain
+const { handleBlockchainError } = useBlockchainErrorHandler()
 
 // ========================================
 // COMPUTED PROPERTIES
@@ -242,11 +246,16 @@ async function handleWithdrawSuccess() {
 async function handleCreateLicensePlan(planData: any) {
   if (!selectedModel.value) return
   
-  const result = await createLicensePlan(selectedModel.value.id, planData)
-  if (result.success) {
-    notifySuccess('Plan Creado', result.message)
-  } else {
-    notifyError('Error al Crear Plan', result.message)
+  try {
+    const result = await createLicensePlan(selectedModel.value.id, planData)
+    if (result.success) {
+      notifySuccess('Plan Creado', result.message)
+      // Recargar modelos para ver el nuevo plan
+      await loadModels()
+    }
+  } catch (err: any) {
+    console.error('Error al crear plan de licencia:', err)
+    handleBlockchainError(err, 'creación de plan de licencia')
   }
 }
 
