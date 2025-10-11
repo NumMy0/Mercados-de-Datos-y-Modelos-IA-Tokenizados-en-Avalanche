@@ -11,6 +11,7 @@ interface Props {
     name: string
     ipfsHash: string
     category: string
+    tokenURI?: string  // Agregado para metadatos
   } | null
 }
 
@@ -113,12 +114,49 @@ const handleSubmit = async () => {
       }
     }
 
-    // 🔐 Pasar la dirección del usuario para verificar licencia
-    await runInference({
+    // � Debug: Verificar datos del modelo antes de enviar
+    console.log('🔍 =================================')
+    console.log('🔍 DEBUG INFERENCE MODAL')
+    console.log('🔍 =================================')
+    console.log('🔍 Modelo completo:', JSON.stringify(props.model, null, 2))
+    console.log('🔍 tokenURI (metadatos):', props.model?.tokenURI)
+    console.log('🔍 ipfsHash (archivo):', props.model?.ipfsHash)
+    console.log('🔍 account:', account.value)
+    console.log('🔍 input type:', inputType.value)
+    console.log('🔍 input data length:', input?.data?.length || 'no data')
+
+    // Validaciones adicionales con fallback
+    let metadataHash = props.model?.tokenURI
+    
+    if (!metadataHash) {
+      console.warn('⚠️ WARNING: tokenURI está vacío, usando ipfsHash como fallback')
+      console.warn('⚠️ Este modelo fue subido sin metadatos. Se intentará usar el archivo del modelo.')
+      metadataHash = props.model?.ipfsHash
+      
+      if (!metadataHash) {
+        console.error('❌ ERROR: Ni tokenURI ni ipfsHash están disponibles')
+        console.error('❌ El modelo no tiene datos válidos para ejecutar inferencia')
+        return
+      }
+    }
+
+    if (!props.model?.ipfsHash) {
+      console.error('❌ ERROR: ipfsHash está vacío o undefined')
+      console.error('❌ El modelo no tiene archivo válido')
+      return
+    }
+
+    const inferenceRequest = {
       modelId: props.model.id.toString(),
-      ipfsHash: props.model.ipfsHash,
+      metadataHash: metadataHash, // Usar tokenURI o ipfsHash como fallback
+      modelHash: props.model.ipfsHash,    // Hash del archivo del modelo
       input
-    }, account.value || undefined)
+    }
+
+    console.log('🚀 Enviando request de inferencia:', JSON.stringify(inferenceRequest, null, 2))
+
+    // 🔐 Pasar la dirección del usuario para verificar licencia
+    await runInference(inferenceRequest, account.value || undefined)
   } catch (err) {
     console.error('Error ejecutando inferencia:', err)
   }

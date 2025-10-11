@@ -28,15 +28,46 @@ module.exports = {
   // Logging
   logLevel: process.env.LOG_LEVEL || "info",
 
-  // NUEVA CONFIGURACIÓN IPFS CON MÚLTIPLES GATEWAYS
-  IPFS_GATEWAYS: process.env.IPFS_GATEWAYS?.split(",") || [
-    "https://ipfs.io/ipfs/",
-    "https://dweb.link/ipfs/",
-    "https://gateway.ipfs.io/ipfs/",
-    "https://4everland.io/ipfs/",
-    "https://w3s.link/ipfs/",
-  ],
-  IPFS_GATEWAY_URL: process.env.IPFS_GATEWAY_URL || "https://ipfs.io/ipfs/",
-  IPFS_DOWNLOAD_TIMEOUT: parseInt(process.env.IPFS_DOWNLOAD_TIMEOUT) || 60000, // Aumentado a 60s
-  MAX_DOWNLOAD_SIZE_MB: parseInt(process.env.MAX_DOWNLOAD_SIZE_MB) || 150, // Aumentado a 150MB
+  // CONFIGURACIÓN IPFS MEJORADA CON TU GATEWAY PERSONAL
+  ipfs: {
+    // Tu gateway principal (Pinata)
+    primaryGateway:
+      process.env.IPFS_GATEWAY_PRIMARY ||
+      "https://magenta-used-firefly-552.mypinata.cloud/ipfs/",
+
+    // Gateways de respaldo en orden de prioridad
+    fallbackGateways: [
+      process.env.IPFS_GATEWAY_FALLBACK_1 ||
+        "https://gateway.pinata.cloud/ipfs/",
+      process.env.IPFS_GATEWAY_FALLBACK_2 || "https://ipfs.io/ipfs/",
+      process.env.IPFS_GATEWAY_FALLBACK_3 || "https://dweb.link/ipfs/",
+      process.env.IPFS_GATEWAY_FALLBACK_4 ||
+        "https://cloudflare-ipfs.com/ipfs/",
+      process.env.IPFS_GATEWAY_FALLBACK_5 || "https://4everland.io/ipfs/",
+    ],
+
+    // Configuraciones específicas por gateway
+    gatewayConfig: {
+      "magenta-used-firefly-552.mypinata.cloud": {
+        timeout: 30000,
+        retries: 3,
+        headers: {
+          "User-Agent": "AI-Model-Inference-Engine/1.0",
+        },
+      },
+      "gateway.pinata.cloud": {
+        timeout: 30000,
+        retries: 3,
+        headers: {
+          "User-Agent": "AI-Model-Inference-Engine/1.0",
+        },
+      },
+    },
+
+    maxDownloadSizeMB: parseInt(process.env.MAX_DOWNLOAD_SIZE_MB) || 150,
+    downloadTimeout: parseInt(process.env.DOWNLOAD_TIMEOUT_MS) || 60000,
+
+    // Configuración de autenticación para Pinata (opcional)
+    pinataJWT: process.env.PINATA_JWT || null,
+  },
 };

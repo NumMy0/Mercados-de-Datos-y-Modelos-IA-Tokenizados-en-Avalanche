@@ -135,12 +135,14 @@ class ModelLoader {
     logger.info(`Archivo ONNX descargado. Tamaño: ${(modelBuffer.length / (1024 * 1024)).toFixed(2)} MB.`);
     
     // 4. Verificar Integridad (Objetivo: Implementar verificación de hash)
-    if (!IpfsService.verifyHash(modelBuffer, modelHash)) {
-      throw new Error(`Verificación de hash fallida para el modelo ${modelId}. El archivo está corrupto o alterado. (CID: ${modelCid})`); // Manejo de 5 errores comunes
-    }
-    logger.info(`Verificación de integridad de hash exitosa para ${modelId}.`);
-
-    // 5. Cargar Labels desde IPFS
+    if (modelHash && modelHash !== 'unknown') {
+      if (!IpfsService.verifyHash(modelBuffer, modelHash)) {
+        throw new Error(`Verificación de hash fallida para el modelo ${modelId}. El archivo está corrupto o alterado. (CID: ${modelCid})`); // Manejo de 5 errores comunes
+      }
+      logger.info(`Verificación de integridad de hash exitosa para ${modelId}.`);
+    } else {
+      logger.warn(`Verificación de hash omitida para ${modelId} (hash no disponible).`);
+    }    // 5. Cargar Labels desde IPFS
     let labels = null;
     if (labelsCid) {
         logger.info(`Descargando archivo de etiquetas (CID: ${labelsCid})...`);

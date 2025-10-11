@@ -5,7 +5,8 @@ const INFERENCE_API_URL = import.meta.env.VITE_INFERENCE_API_URL || 'http://loca
 
 export interface InferenceRequest {
   modelId: string
-  ipfsHash: string
+  metadataHash: string  // Hash de los metadatos JSON
+  modelHash?: string    // Hash del archivo del modelo (opcional)
   input: any
   preprocessingConfig?: {
     imageSize?: [number, number]
@@ -37,7 +38,31 @@ export function useInference() {
     result.value = null
 
     try {
-      // 🔐 Verificar licencia activa antes de ejecutar inferencia
+      // � Debug inicial: Ver qué datos están llegando
+      console.log('🚀 =================================')
+      console.log('🚀 INICIANDO INFERENCIA DEBUG')
+      console.log('🚀 =================================')
+      console.log('🔍 Request recibido:', JSON.stringify(request, null, 2))
+      console.log('🔍 Usuario:', userAddress)
+      console.log('🔍 INFERENCE_API_URL:', INFERENCE_API_URL)
+
+      // � Verificar si el motor de inferencia está disponible
+      console.log('🔍 Verificando disponibilidad del motor de inferencia...')
+      try {
+        const healthResponse = await fetch(`${INFERENCE_API_URL}/health`)
+        console.log('🏥 Health check status:', healthResponse.status)
+        if (healthResponse.ok) {
+          const healthData = await healthResponse.json()
+          console.log('🏥 Health check response:', healthData)
+        } else {
+          console.warn('⚠️ Motor de inferencia no responde correctamente')
+        }
+      } catch (healthErr) {
+        console.error('❌ No se puede conectar al motor de inferencia:', healthErr)
+        throw new Error('El motor de inferencia no está disponible. Verifica que esté ejecutándose en http://localhost:3001')
+      }
+
+      // �🔐 Verificar licencia activa antes de ejecutar inferencia
       if (userAddress) {
         console.log(`🔍 Verificando licencia para modelo ${request.modelId} y usuario ${userAddress}`)
         
@@ -71,27 +96,56 @@ export function useInference() {
 
       // Si no está cargado, cargar desde IPFS
       if (!modelLoaded) {
-        console.log(`📥 Modelo no cargado. Cargando desde IPFS: ${request.ipfsHash}`)
+        console.log(`📥 Modelo no cargado. Cargando metadatos desde IPFS: ${request.metadataHash}`)
+        
+        // 🔍 Debug: Verificar que tenemos los datos necesarios
+        console.log('🐛 Debug - request completo:', JSON.stringify(request, null, 2))
+        console.log('🐛 Debug - tokenId:', cacheKey)
+        console.log('🐛 Debug - metadataHash:', request.metadataHash)
+        console.log('🐛 Debug - metadataHash type:', typeof request.metadataHash)
+        console.log('🐛 Debug - metadataHash length:', request.metadataHash?.length)
+        console.log('🐛 Debug - modelHash:', request.modelHash)
+
+        if (!request.metadataHash) {
+          throw new Error('No se proporcionó el hash de metadatos (metadataHash)')
+        }
+
+        if (!request.metadataHash.trim()) {
+          throw new Error('El hash de metadatos está vacío')
+        }
+  
         try {
+          const loadPayload = {
+            tokenId: cacheKey,
+            metadataCid: request.metadataHash
+          }
+          
+          console.log('🚀 Enviando payload de carga:', JSON.stringify(loadPayload, null, 2))
+          console.log('🌐 URL del endpoint:', `${INFERENCE_API_URL}/models/load`)
+          
           const loadResponse = await fetch(`${INFERENCE_API_URL}/models/load`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              tokenId: cacheKey,
-              metadataCid: request.ipfsHash
-            }),
+            body: JSON.stringify(loadPayload),
           })
+
+          console.log('📡 Response status:', loadResponse.status)
+          console.log('📡 Response statusText:', loadResponse.statusText)
+          console.log('📡 Response ok:', loadResponse.ok)
 
           if (!loadResponse.ok) {
             const loadError = await loadResponse.json()
+            console.error('❌ Error response completo:', loadError)
             throw new Error(`Error cargando modelo: ${loadError.error || loadResponse.statusText}`)
           }
 
           const loadResult = await loadResponse.json()
           console.log('✅ Modelo cargado exitosamente:', loadResult)
         } catch (loadErr: any) {
+          console.error('❌ Error completo en carga:', loadErr)
+          console.error('❌ Stack trace:', loadErr.stack)
           throw new Error(`No se pudo cargar el modelo desde IPFS: ${loadErr.message}`)
         }
       } else {
