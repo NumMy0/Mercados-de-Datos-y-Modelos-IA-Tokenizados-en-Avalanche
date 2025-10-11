@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useInference } from '../../composables/useInference'
 import { useWallet } from '../../composables/useWallet'
 import { hasActiveLicense } from '../../composables/blockchain'
@@ -181,6 +181,35 @@ const handleClose = () => {
   imagePreview.value = null
   emit('close')
 }
+
+// Gestión del scroll del body
+const lockBodyScroll = () => {
+  document.body.classList.add('modal-open')
+  document.body.style.overflow = 'hidden'
+}
+
+const unlockBodyScroll = () => {
+  document.body.classList.remove('modal-open')
+  document.body.style.overflow = ''
+}
+
+// Control del scroll cuando se abre/cierra el modal
+watch(() => props.isOpen, (isOpen) => {
+  if (isOpen) {
+    lockBodyScroll()
+  } else {
+    unlockBodyScroll()
+    // Limpiar el formulario al cerrar
+    textInput.value = ''
+    imageFile.value = null
+    imagePreview.value = null
+  }
+})
+
+// Limpiar al desmontar el componente
+onUnmounted(() => {
+  unlockBodyScroll()
+})
 </script>
 
 <template>

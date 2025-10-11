@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { getModelById, buyLicense, hasActiveLicense } from '../../composables/blockchain'
 import { useNotifications } from '../../composables/useNotifications'
 import { useBlockchainErrorHandler } from '../../composables/useBlockchainErrorHandler'
@@ -144,18 +144,36 @@ const loadModelData = async () => {
   }
 }
 
+// Gestión del scroll del body
+const lockBodyScroll = () => {
+  document.body.classList.add('modal-open')
+  document.body.style.overflow = 'hidden'
+}
+
+const unlockBodyScroll = () => {
+  document.body.classList.remove('modal-open')
+  document.body.style.overflow = ''
+}
+
 // Cargar datos cuando se abre el modal
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     loadModelData()
+    lockBodyScroll()
   } else {
     // Reset al cerrar
     licensePlans.value = []
     fullModelData.value = null
     userHasLicense.value = false
     activeTab.value = 'model'
+    unlockBodyScroll()
   }
 }, { immediate: true })
+
+// Limpiar al desmontar el componente
+onUnmounted(() => {
+  unlockBodyScroll()
+})
 
 const handleBuyModel = async () => {
   isProcessing.value = true
@@ -597,5 +615,24 @@ const handleClose = () => {
   transition-property: background-color, border-color, color, box-shadow;
   transition-duration: 200ms;
   transition-timing-function: ease-in-out;
+}
+
+/* Custom scrollbar */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.5);
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.7);
 }
 </style>
