@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useInference } from '../../composables/useInference'
 import { useWallet } from '../../composables/useWallet'
 import { hasActiveLicense } from '../../composables/blockchain'
+import { getModelById } from '../../composables/blockchain'
 
 interface Props {
   isOpen: boolean
@@ -126,13 +127,25 @@ const handleSubmit = async () => {
     console.log('🔍 input data length:', input?.data?.length || 'no data')
 
     // Validaciones adicionales con fallback
+    // Intentar obtener los datos más recientes on-chain antes de enviar la inferencia
     let metadataHash = props.model?.tokenURI
-    
+    let modelHash = props.model?.ipfsHash
+
+    try {
+      const latest = await getModelById(props.model!.id)
+      if (latest) {
+        // Priorizar tokenURI/onchain y luego ipfsHash
+        metadataHash = latest.tokenURI ?? latest.ipfsHash ?? metadataHash
+        modelHash = latest.ipfsHash ?? modelHash
+      }
+    } catch (e) {
+      console.debug('No se pudo obtener latest model via getModelById en handleSubmit, usando props.model como fallback', e)
+    }
+
     if (!metadataHash) {
       console.warn('⚠️ WARNING: tokenURI está vacío, usando ipfsHash como fallback')
       console.warn('⚠️ Este modelo fue subido sin metadatos. Se intentará usar el archivo del modelo.')
-      metadataHash = props.model?.ipfsHash
-      
+      metadataHash = modelHash
       if (!metadataHash) {
         console.error('❌ ERROR: Ni tokenURI ni ipfsHash están disponibles')
         console.error('❌ El modelo no tiene datos válidos para ejecutar inferencia')
@@ -140,7 +153,7 @@ const handleSubmit = async () => {
       }
     }
 
-    if (!props.model?.ipfsHash) {
+    if (!modelHash) {
       console.error('❌ ERROR: ipfsHash está vacío o undefined')
       console.error('❌ El modelo no tiene archivo válido')
       return
@@ -149,7 +162,7 @@ const handleSubmit = async () => {
     const inferenceRequest = {
       modelId: props.model.id.toString(),
       metadataHash: metadataHash, // Usar tokenURI o ipfsHash como fallback
-      modelHash: props.model.ipfsHash,    // Hash del archivo del modelo
+      modelHash: modelHash,    // Hash del archivo del modelo
       input
     }
 

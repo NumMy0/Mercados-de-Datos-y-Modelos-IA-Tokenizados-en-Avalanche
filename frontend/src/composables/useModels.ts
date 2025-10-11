@@ -148,6 +148,9 @@ export function useModels(userAddress?: Ref<string | null>) {
         })
       )
 
+      console.log(rawModels);
+      
+
       // 3. Enriquecer con metadata IPFS en paralelo
       const enriched = await Promise.all(
         rawModels.map(m => enrichModelWithMetadata(m))
