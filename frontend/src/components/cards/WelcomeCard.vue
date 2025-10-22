@@ -7,7 +7,7 @@ interface Button {
   loading?: boolean
 }
 
-const props = defineProps<{
+defineProps<{
   title: string
   subtitle: string
   description: string

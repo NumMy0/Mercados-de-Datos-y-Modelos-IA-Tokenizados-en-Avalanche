@@ -121,6 +121,7 @@ class ModelLoader {
 
     // 2. Obtener y Validar Metadatos (Objetivo: Módulo de Metadatos)
     const metadata = await IpfsService.getMetadata(metadataCid);
+    console.log('Metadatos obtenidos:', metadata);
     const modelCid = metadata.model_cid;
     const modelHash = metadata.model_hash;
     const modelId = metadata.model_id;

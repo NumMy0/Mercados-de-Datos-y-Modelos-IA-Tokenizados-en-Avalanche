@@ -77,7 +77,7 @@ export function useWallet() {
       provider.value = new BrowserProvider(window.ethereum)
 
       // Actualizar estado
-      account.value = accounts[0]
+  account.value = accounts[0] ?? null
       chainId.value = currentChainId
 
       console.log('Wallet conectada:', {
@@ -176,7 +176,7 @@ export function useWallet() {
     if (accounts.length === 0) {
       disconnectWallet()
     } else {
-      account.value = accounts[0]
+      account.value = accounts[0] ?? null
       console.log('Cuenta cambiada:', account.value)
     }
   }
@@ -202,7 +202,7 @@ export function useWallet() {
         })
 
         if (accounts.length > 0 && accounts[0]) {
-          account.value = accounts[0]
+          account.value = accounts[0] ?? null
           
           const currentChainId = await window.ethereum.request({
             method: 'eth_chainId'
